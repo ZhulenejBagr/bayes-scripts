@@ -5,9 +5,10 @@ import matplotlib.pyplot as plt
 import timeit as ti
 
 def metropolis(samples = 10000, n_cores = 4, n_chains = 4):
+    seed = np.random.default_rng(222)
     tune = 2000
     observed = -1e-3
-    sigma = 1e-1
+    sigma = 2e-4
     with pm.Model() as model:
         # reference: tabulka 3.1 v sekci 3.2
         # "f_U" v zadání, aka "prior pdf"
@@ -20,7 +21,7 @@ def metropolis(samples = 10000, n_cores = 4, n_chains = 4):
         # G by pak mohlo být f_(U|Y) (u|y), neboli ve figure 3.1d?
         G = pm.Normal('G', mu = G_mean, sigma = sigma, observed = observed)
 
-        trace = pm.sample(samples, tune = tune, step = pm.Metropolis(), chains = n_chains, cores = n_cores)
+        trace = pm.sample(samples, tune = tune, step = pm.Metropolis(), chains = n_chains, cores = n_cores, random_seed=seed)
     
     return trace
 
