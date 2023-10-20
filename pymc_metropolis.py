@@ -4,9 +4,8 @@ import arviz as az
 import matplotlib.pyplot as plt
 import timeit as ti
 
-def metropolis(samples = 10000, n_cores = 4, n_chains = 4):
+def metropolis(samples = 10000, n_cores = 4, n_chains = 4, tune = 3000):
     seed = np.random.default_rng(222)
-    tune = 2000
     observed = -1e-3
     sigma = 2e-4
     with pm.Model() as model:
@@ -25,8 +24,7 @@ def metropolis(samples = 10000, n_cores = 4, n_chains = 4):
     
     return trace
 
-
-if __name__ == "__main__":
+def benchmark():
     iters = 3
     t1c1 = ti.timeit('metropolis(n_cores = 1, n_chains = 1)', globals = globals(), number = iters)
     t4c1 = ti.timeit('metropolis(n_cores = 4, n_chains = 1)', globals = globals(), number = iters)
@@ -38,22 +36,31 @@ if __name__ == "__main__":
     t4c16 = ti.timeit('metropolis(n_cores = 4, n_chains = 16)', globals = globals(), number = iters)
     t16c16 = ti.timeit('metropolis(n_cores = 16, n_chains = 16)', globals = globals(), number = iters)
     
-    print(f"Execution time for 1 chain:\n1 core: {t1c1}\n4 cores: {t4c1}\n16 cores: {t16c1}\n")
-    print(f"Execution time for 4 chains:\n1 core: {t1c4}\n4 cores: {t4c4}\n16 cores: {t16c4}\n")
-    print(f"Execution time for 16 chains:\n1 core: {t1c16}\n4 cores: {t4c16}\n16 cores: {t16c16}\n")
+    print(f"Execution time for 1 chain:\n1 core: {t1c1}s\n4 cores: {t4c1}s\n16 cores: {t16c1}s\n")
+    print(f"Execution time for 4 chains:\n1 core: {t1c4}s\n4 cores: {t4c4}s\n16 cores: {t16c4}s\n")
+    print(f"Execution time for 16 chains:\n1 core: {t1c16}s\n4 cores: {t4c16}s\n16 cores: {t16c16}s\n")
     # Execution time for 1 chain:
-    #1 core: 11.148524099990027
-    #4 cores: 10.298176300013438
-    #16 cores: 10.456789700023364
+    #1 core: 11.148524099990027s
+    #4 cores: 10.298176300013438s
+    #16 cores: 10.456789700023364s
 
     #Execution time for 4 chains:
-    #1 core: 37.46264680000604
-    #4 cores: 86.86602760001551
-    #16 cores: 87.1835080999881
+    #1 core: 37.46264680000604s
+    #4 cores: 86.86602760001551s
+    #16 cores: 87.1835080999881s
 
     #Execution time for 16 chains:
-    #1 core: 147.5261680999829
-    #4 cores: 382.13164209999377
-    #16 cores: 610.7609780000057
+    #1 core: 147.5261680999829s
+    #4 cores: 382.13164209999377s
+    #16 cores: 610.7609780000057s
 
+
+if __name__ == "__main__":
+    data = metropolis(3000, n_chains=4)
+    gs = 25
+    az.plot_pair(data=data, kind="hexbin", marginals=True, gridsize=(round(gs * 1.73), gs), hexbin_kwargs={"cmap": "Grays"})
+    #az.plot_autocorr(data)
+    #az.plot_rank(data=data)
+    print(az.summary(data=data))
     plt.show()
+

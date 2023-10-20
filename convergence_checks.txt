@@ -1,0 +1,18 @@
+Podle https://pymcmc.readthedocs.io/en/latest/modelchecking.html (zdroj je z roku 2015, je možné, že je současně jinak)
+#1
+
+J. Geweke. 
+Evaluating the accuracy of sampling-based approaches to calculating posterior moments. 
+In Bernardo et al. 1992, pages 169–193.
+
+#2
+
+A.E. Raftery and S.M. Lewis. 
+The number of iterations, convergence diagnostics and generic metropolis al- gorithms. 
+In D.J. Spiegelhalter W.R. Gilks and S. Richardson, editors, Practical Markov Chain Monte Carlo. Chapman and Hall, London, U.K., 1995.
+
+#3
+
+A. Gelman and D.R. Rubin. 
+A single series from the Gibbs sampler provides a false sense of security. 
+In Bayesian Statistics (eds. J. Bernardo et al.) 1992, Oxford University Press, 625-31.
