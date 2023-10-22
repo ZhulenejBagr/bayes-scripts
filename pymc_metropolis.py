@@ -19,7 +19,6 @@ def metropolis(samples = 10000, n_cores = 4, n_chains = 4, tune = 3000):
         # u tohoto rozdělení určit nějaký rozptyl (podle f_Z?) a nastavit observed na y
         # G by pak mohlo být f_(U|Y) (u|y), neboli ve figure 3.1d?
         G = pm.Normal('G', mu = G_mean, sigma = sigma, observed = observed)
-
         trace = pm.sample(samples, tune = tune, step = pm.Metropolis(), chains = n_chains, cores = n_cores, random_seed=seed)
     
     return trace
