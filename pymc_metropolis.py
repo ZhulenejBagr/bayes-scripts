@@ -4,7 +4,7 @@ import arviz as az
 import matplotlib.pyplot as plt
 import timeit as ti
 
-def metropolis(samples = 10000, n_cores = 4, n_chains = 4, tune = 3000):
+def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000):
     seed = np.random.default_rng(222)
     observed = -1e-3
     sigma = 2e-4
@@ -18,10 +18,9 @@ def metropolis(samples = 10000, n_cores = 4, n_chains = 4, tune = 3000):
         # současný nápad je použít G jako střední hodnotu pro normální rozdělení
         # u tohoto rozdělení určit nějaký rozptyl (podle f_Z?) a nastavit observed na y
         # G by pak mohlo být f_(U|Y) (u|y), neboli ve figure 3.1d?
-        G = pm.Normal('G', mu = G_mean, sigma = sigma, observed = observed)
-        trace = pm.sample(samples, tune = tune, step = pm.Metropolis(), chains = n_chains, cores = n_cores, random_seed=seed)
-    
-    return trace
+        G = pm.Normal('G', mu=G_mean, sigma=sigma, observed=observed)
+        idata = pm.sample(samples, tune=tune, step=pm.Metropolis(), chains=n_chains, cores=n_cores, random_seed=seed)
+        return idata
 
 def benchmark():
     iters = 3
@@ -55,11 +54,20 @@ def benchmark():
 
 
 if __name__ == "__main__":
-    data = metropolis(3000, n_chains=4)
-    gs = 25
-    az.plot_pair(data=data, kind="hexbin", marginals=True, gridsize=(round(gs * 1.73), gs), hexbin_kwargs={"cmap": "Grays"})
+    idata = metropolis(samples=5000, tune=5000, n_cores=4, n_chains=4)
+    gs = 40
+    az.plot_pair(
+        data=idata, 
+        kind="hexbin", 
+        marginals=True, 
+        gridsize=(round(gs * 1.73), gs), 
+        hexbin_kwargs={"cmap": "Greys"}
+        #var_names=['G', 'U']
+        )
     #az.plot_autocorr(data)
     #az.plot_rank(data=data)
-    print(az.summary(data=data))
+    print(az.summary(data=idata))    
+    az.plot_trace(data=idata, compact=True)
+    #az.plot_ppc(data=data)
     plt.show()
 

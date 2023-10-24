@@ -16,7 +16,6 @@ and on /pymc/step_methods/
 Not parallel (population):
 DEMetropolis
 
-
 Parallel:
 Metropolis
 BinaryMetropolis
@@ -24,5 +23,5 @@ BinaryGibbsMetropolis
 CategoricalGibbsMetropolis
 DEMetropolisZ
 Slice
-HamiltonianMC (uses gradients!)
-NUTS
+HamiltonianMC (uses gradients)
+NUTS (uses gradients)
