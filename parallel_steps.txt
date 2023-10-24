@@ -1,0 +1,28 @@
+Based on:
+/pymc/sampling/mcmc.py, lines 740-747
+```
+has_population_samplers = np.any(
+    [
+        isinstance(m, PopulationArrayStepShared)
+        for m in (step.methods if isinstance(step, CompoundStep) else [step])
+    ]
+)
+
+parallel = cores > 1 and chains > 1 and not has_population_samplers
+```
+and on /pymc/step_methods/
+
+
+Not parallel (population):
+DEMetropolis
+
+
+Parallel:
+Metropolis
+BinaryMetropolis
+BinaryGibbsMetropolis
+CategoricalGibbsMetropolis
+DEMetropolisZ
+Slice
+HamiltonianMC (uses gradients!)
+NUTS
