@@ -3,6 +3,13 @@ import numpy as np
 import arviz as az
 import matplotlib.pyplot as plt
 import timeit as ti
+from matplotlib.colors import Normalize
+from matplotlib.cm import ScalarMappable
+import pathlib
+import os
+
+def base_path():
+    return pathlib.Path(__file__).parent.resolve()
 
 def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000):
     seed = np.random.default_rng(222)
@@ -11,7 +18,7 @@ def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000):
     with pm.Model() as model:
         # reference: tabulka 3.1 v sekci 3.2
         # "f_U" v zadání, aka "prior pdf"
-        U = pm.MvNormal('U', [5, 3], [[4, -2],[-2, 4]])
+        U = pm.MvNormal('U', [7, 5], [[4, -2],[-2, 4]])
         # "G" v zadání, aka "observation operator"
         G_mean = pm.Deterministic('G_mean', -1 / 80 * (3 / np.exp(U[0]) + 1 / np.exp(U[1])))
         # y a f_Z uplně nevím, jak zakomponovat do modelu
@@ -52,22 +59,53 @@ def benchmark():
     #4 cores: 382.13164209999377s
     #16 cores: 610.7609780000057s
 
+def custom_pair_plot(idata):
+    # get values from inference data
+    x_data = idata["posterior"]["U"][:, :, 0]
+    y_data = idata["posterior"]["U"][:, :, 1]
+    data_likelyhood = idata["sample_stats"]["accept"]
+    # -- some attempt at normalizing --
+    # bring all values to <0, +inf)
+    minimum = np.min(data_likelyhood) 
+    data_likelyhood = np.add(data_likelyhood, -1 * minimum)
+    # apply log to all values
+    data_likelyhood = np.log2(data_likelyhood)
+
+    # plot values
+    colormap = plt.get_cmap('Greys')
+    norm = Normalize(vmin=np.min(data_likelyhood), vmax=np.max(data_likelyhood))
+    sm = ScalarMappable(cmap=colormap, norm=norm)
+    sm.set_array([])
+    plt.scatter(
+        x_data, 
+        y_data, 
+        c=data_likelyhood,
+        cmap=colormap
+    )
+    plt.colorbar(sm, label="Hustota pravděpodobnosti", ax=plt.gca())
+    plt.savefig(os.path.join(base_path(), "Graphs", "custom_pair_plot.pdf"), format="pdf", dpi=300)
+
+
 
 if __name__ == "__main__":
     idata = metropolis(samples=5000, tune=5000, n_cores=4, n_chains=4)
+    #print(idata["posterior"])
+    print(idata["sample_stats"])
+    custom_pair_plot(idata=idata)
+
     gs = 40
     az.plot_pair(
         data=idata, 
         kind="hexbin", 
-        marginals=True, 
+        #marginals=True, 
         gridsize=(round(gs * 1.73), gs), 
-        hexbin_kwargs={"cmap": "Greys"}
-        #var_names=['G', 'U']
+        hexbin_kwargs={"cmap": "Greys"},
+        var_names = ["U", "G_mean"]
         )
+    plt.savefig(os.path.join(base_path(), "Graphs", "pair_plot.pdf"), format="pdf", dpi=300)
     #az.plot_autocorr(data)
     #az.plot_rank(data=data)
     print(az.summary(data=idata))    
-    az.plot_trace(data=idata, compact=True)
+    #az.plot_trace(data=idata, compact=True)
     #az.plot_ppc(data=data)
-    plt.show()
 

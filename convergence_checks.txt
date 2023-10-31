@@ -1,4 +1,6 @@
 https://notebook.community/fonnesbeck/PyMC3_Oslo/notebooks/6.%20Model%20Checking
+https://econ.pages.code.wm.edu/414/notes/docs/convergence_diagnostics.html
+
 
 
 Podle https://pymcmc.readthedocs.io/en/latest/modelchecking.html (zdroj je z roku 2015, je možné, že je současně jinak)
