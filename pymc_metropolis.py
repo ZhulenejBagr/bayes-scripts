@@ -1,24 +1,36 @@
 import pymc as pm
 import numpy as np
+import numpy.random as npr
 import arviz as az
 import matplotlib.pyplot as plt
 import timeit as ti
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
+from scipy.stats import multivariate_normal
 import pathlib
 import os
+generator = np.random.default_rng(222)
+
+def save_plot(folder_path, filename):
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+    plt.savefig(os.path.join(folder_path, filename), format="pdf", dpi=300)
+
 
 def base_path():
     return pathlib.Path(__file__).parent.resolve()
 
-def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000):
-    seed = np.random.default_rng(222)
+def graphs_path():
+    return os.path.join(base_path(), "Graphs")
+
+def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000, prior_mean=[5, 3], prior_cov=[[4, -2], [-2, 4]]):
     observed = -1e-3
     sigma = 2e-4
     with pm.Model() as model:
         # reference: tabulka 3.1 v sekci 3.2
         # "f_U" v zadání, aka "prior pdf"
-        U = pm.MvNormal('U', [7, 5], [[4, -2],[-2, 4]])
+        U = pm.MvNormal('U', prior_mean, prior_cov)
         # "G" v zadání, aka "observation operator"
         G_mean = pm.Deterministic('G_mean', -1 / 80 * (3 / np.exp(U[0]) + 1 / np.exp(U[1])))
         # y a f_Z uplně nevím, jak zakomponovat do modelu
@@ -26,7 +38,7 @@ def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000):
         # u tohoto rozdělení určit nějaký rozptyl (podle f_Z?) a nastavit observed na y
         # G by pak mohlo být f_(U|Y) (u|y), neboli ve figure 3.1d?
         G = pm.Normal('G', mu=G_mean, sigma=sigma, observed=observed)
-        idata = pm.sample(samples, tune=tune, step=pm.Metropolis(), chains=n_chains, cores=n_cores, random_seed=seed)
+        idata = pm.sample(samples, tune=tune, step=pm.Metropolis(), chains=n_chains, cores=n_cores, random_seed=generator)
         return idata
 
 def benchmark():
@@ -59,39 +71,99 @@ def benchmark():
     #4 cores: 382.13164209999377s
     #16 cores: 610.7609780000057s
 
-def custom_pair_plot(idata):
+def prior_samples(samples=10000, mean=[5,3], cov=[[4,-2],[-2,4]]):
+    values = generator.multivariate_normal(mean=mean, cov=cov, size=samples, check_valid='warn')
+    adj_cov = np.multiply(2 * np.pi, cov)
+    factor = np.sqrt(np.linalg.det(adj_cov))
+    #likelyhoods = [multivariate_normal(mean=mean, cov=cov).pdf(values[idx][0], values[idx][1]) for idx in range(values.shape[0])] 
+    likelyhoods = multivariate_normal(mean=mean, cov=cov).pdf(values)
+    likelyhoods = np.divide(likelyhoods, factor)
+    return {"samples": values, "likelyhood": likelyhoods}
+
+
+
+def custom_pair_plot(idata, prior):
     # get values from inference data
     x_data = idata["posterior"]["U"][:, :, 0]
     y_data = idata["posterior"]["U"][:, :, 1]
     data_likelyhood = idata["sample_stats"]["accept"]
+    factor = idata["sample_stats"]["scaling"]
     # -- some attempt at normalizing --
     # bring all values to <0, +inf)
-    minimum = np.min(data_likelyhood) 
-    data_likelyhood = np.add(data_likelyhood, -1 * minimum)
+    #data_likelyhood = np.add(data_likelyhood, -1 * minimum)
     # apply log to all values
-    data_likelyhood = np.log2(data_likelyhood)
+    #data_likelyhood = np.log2(data_likelyhood)
+    #data_likelyhood = np.divide(data_likelyhood, data_likelyhood.max())
+    data_likelyhood = np.log(np.add(data_likelyhood, 1))
+    data_likelyhood = data_likelyhood / factor
+    # set values greater than 1 to 1
+    data_likelyhood = np.min((data_likelyhood, np.ones(data_likelyhood.shape)), axis=0)
+    #print(data_likelyhood.min())
+    #print(data_likelyhood.max())
+    #counts, bins = np.histogram(data_likelyhood)
+    #plt.stairs(counts, bins)
+    #plt.show()
 
-    # plot values
-    colormap = plt.get_cmap('Greys')
-    norm = Normalize(vmin=np.min(data_likelyhood), vmax=np.max(data_likelyhood))
-    sm = ScalarMappable(cmap=colormap, norm=norm)
-    sm.set_array([])
-    plt.scatter(
+    # prior data
+    x_prior = [prior["samples"][idx][0] for idx in range(prior["samples"].shape[0])]
+    y_prior = [prior["samples"][idx][1] for idx in range(prior["samples"].shape[0])]
+    prior_likelyhood = [prior["likelyhood"][idx] for idx in range(prior["likelyhood"].shape[0])]
+
+    # init plot figure
+    wrl = [1, 14, 1]
+    fig, ax = plt.subplots(nrows=1, ncols=3, gridspec_kw={'width_ratios': wrl})
+    fig.set_figwidth(16)
+    fig.set_figheight(9)
+
+    # posterior colormap
+    posterior_colormap = plt.get_cmap('Greys')
+    #posterior_norm = Normalize(vmin=np.min(data_likelyhood), vmax=np.max(data_likelyhood))
+    posterior_norm = Normalize(vmin=0, vmax=1)
+    posterior_sm = ScalarMappable(cmap=posterior_colormap, norm=posterior_norm)
+    posterior_sm.set_array([])
+
+    # prior colormap
+    prior_colormap = plt.get_cmap('Reds')
+    prior_norm = Normalize(vmin=np.min(prior_likelyhood), vmax=np.max(prior_likelyhood))
+    prior_sm = ScalarMappable(cmap=prior_colormap, norm=prior_norm)
+    prior_sm.set_array([])
+
+    # plot prior
+    ax[1].scatter(
+        x_prior,
+        y_prior,
+        c=prior_likelyhood,
+        cmap=prior_colormap,
+        label="Prior",
+        s=6
+    )
+
+    # plot posterior
+    ax[1].scatter(
         x_data, 
         y_data, 
         c=data_likelyhood,
-        cmap=colormap
+        cmap=posterior_colormap,
+        label="Posterior",
+        s=6
     )
-    plt.colorbar(sm, label="Hustota pravděpodobnosti", ax=plt.gca())
-    plt.savefig(os.path.join(base_path(), "Graphs", "custom_pair_plot.pdf"), format="pdf", dpi=300)
+
+    # add colorbars and legend
+    plt.legend('upper left')
+    fig.colorbar(posterior_sm, label="Posterior PDF", cax=ax[0])
+    fig.colorbar(prior_sm, label="Prior PDF", cax=ax[2])
+
+    # save plot to file
+    save_plot(graphs_path(), "custom_pair_plot.pdf")
+
 
 
 
 if __name__ == "__main__":
-    idata = metropolis(samples=5000, tune=5000, n_cores=4, n_chains=4)
-    #print(idata["posterior"])
-    print(idata["sample_stats"])
-    custom_pair_plot(idata=idata)
+    prior_mean = [5, 3]
+    idata = metropolis(samples=10000, tune=5000, n_cores=4, n_chains=4, prior_mean=prior_mean)
+    prior_data = prior_samples(mean=prior_mean)
+    custom_pair_plot(idata=idata, prior=prior_data)
 
     gs = 40
     az.plot_pair(
@@ -102,7 +174,7 @@ if __name__ == "__main__":
         hexbin_kwargs={"cmap": "Greys"},
         var_names = ["U", "G_mean"]
         )
-    plt.savefig(os.path.join(base_path(), "Graphs", "pair_plot.pdf"), format="pdf", dpi=300)
+    save_plot(graphs_path(), "pair_plot.pdf")
     #az.plot_autocorr(data)
     #az.plot_rank(data=data)
     print(az.summary(data=idata))    

@@ -20,7 +20,6 @@ def norm_pdf(value, mean, std):
 def mvn_pdf(rnd, mean, cov):
     cov = np.multiply(2 * np.pi, cov)
     factor = np.sqrt(np.linalg.det(cov))
-    factor = 1
     return multivariate_normal.pdf(rnd, mean, cov) / factor
 
 
