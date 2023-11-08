@@ -39,6 +39,7 @@ def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000, prior_mean=[5, 3
         # G by pak mohlo být f_(U|Y) (u|y), neboli ve figure 3.1d?
         G = pm.Normal('G', mu=G_mean, sigma=sigma, observed=observed)
         idata = pm.sample(samples, tune=tune, step=pm.Metropolis(), chains=n_chains, cores=n_cores, random_seed=generator)
+        likelyhood = pm.compute_log_likelihood(idata, extend_inferencedata=True)
         return idata
 
 def benchmark():
@@ -86,18 +87,15 @@ def custom_pair_plot(idata, prior):
     # get values from inference data
     x_data = idata["posterior"]["U"][:, :, 0]
     y_data = idata["posterior"]["U"][:, :, 1]
-    data_likelyhood = idata["sample_stats"]["accept"]
-    factor = idata["sample_stats"]["scaling"]
+    log_likelihood = idata["log_likelihood"]["G"]
+    #likelihood = np.log10(log_likelihood)
     # -- some attempt at normalizing --
     # bring all values to <0, +inf)
     #data_likelyhood = np.add(data_likelyhood, -1 * minimum)
     # apply log to all values
     #data_likelyhood = np.log2(data_likelyhood)
     #data_likelyhood = np.divide(data_likelyhood, data_likelyhood.max())
-    data_likelyhood = np.log(np.add(data_likelyhood, 1))
-    data_likelyhood = data_likelyhood / factor
     # set values greater than 1 to 1
-    data_likelyhood = np.min((data_likelyhood, np.ones(data_likelyhood.shape)), axis=0)
     #print(data_likelyhood.min())
     #print(data_likelyhood.max())
     #counts, bins = np.histogram(data_likelyhood)
@@ -116,9 +114,8 @@ def custom_pair_plot(idata, prior):
     fig.set_figheight(9)
 
     # posterior colormap
-    posterior_colormap = plt.get_cmap('Greys')
-    #posterior_norm = Normalize(vmin=np.min(data_likelyhood), vmax=np.max(data_likelyhood))
-    posterior_norm = Normalize(vmin=0, vmax=1)
+    posterior_colormap = plt.get_cmap('binary')
+    posterior_norm = Normalize(vmin=np.min(log_likelihood), vmax=np.max(log_likelihood))
     posterior_sm = ScalarMappable(cmap=posterior_colormap, norm=posterior_norm)
     posterior_sm.set_array([])
 
@@ -135,17 +132,19 @@ def custom_pair_plot(idata, prior):
         c=prior_likelyhood,
         cmap=prior_colormap,
         label="Prior",
-        s=6
+        s=6,
+        alpha=0.4
     )
 
     # plot posterior
     ax[1].scatter(
         x_data, 
         y_data, 
-        c=data_likelyhood,
+        c=log_likelihood,
         cmap=posterior_colormap,
         label="Posterior",
-        s=6
+        s=6,
+        alpha=0.05
     )
 
     # add colorbars and legend
