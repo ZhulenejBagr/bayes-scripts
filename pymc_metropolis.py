@@ -23,7 +23,31 @@ def base_path():
     return pathlib.Path(__file__).parent.resolve()
 
 def graphs_path():
-    return os.path.join(base_path(), "Graphs")
+    return os.path.join(base_path(), "graphs")
+
+def idata_path():
+    return os.path.join(base_path(), "idata")
+
+def save_idata_to_file(idata, folder_path, filename):
+    # if path doesn't exist, create it
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+    path = os.path.join(folder_path, filename)
+    if os.path.exists(path=path):
+        pickle.dump(idata, open(path, "wb"))
+    else:
+        pickle.dump(idata, open(path, "ab"))
+        
+
+def read_idata_from_file(idata, folder_path, filename):
+    path = path = os.path.join(folder_path, filename)
+    try: 
+        idata = pickle.load(open(path, "rb"))
+    except:
+        print("Error reading idata file")
+
+    return idata
+
 
 def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000, prior_mean=[5, 3], prior_cov=[[4, -2], [-2, 4]]):
     observed = -1e-3
@@ -129,7 +153,11 @@ if __name__ == "__main__":
     prior_mean = [5, 3]
     idata = metropolis(samples=10000, tune=5000, n_cores=4, n_chains=4, prior_mean=prior_mean)
     prior_data = prior_samples(mean=prior_mean)
+    save_idata_to_file(idata=idata, folder_path=idata_path(), filename="sample_idata")
     custom_pair_plot(idata=idata)
+
+
+
 
     gs = 40
     az.plot_pair(
