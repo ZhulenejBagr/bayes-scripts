@@ -36,32 +36,43 @@ def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000, prior_mean=[5, 3
         G_mean = pm.Deterministic('G_mean', -1 / 80 * (3 / np.exp(U[0]) + 1 / np.exp(U[1])))
         # noise function
         G = pm.Normal('G', mu=G_mean, sigma=sigma, observed=observed)
-        idata = pm.sample(samples, tune=tune, step=pm.Metropolis(), chains=n_chains, cores=n_cores, random_seed=generator)
-        likelyhood = pm.compute_log_likelihood(idata, extend_inferencedata=True)
-        return idata
+        # run sampling algorithm for posterior
+        idata = pm.sample(draws=samples, tune=tune, step=pm.Metropolis(), chains=n_chains, cores=n_cores, random_seed=generator)
+        # add posterior log likelyhood data
+        likelihood = pm.compute_log_likelihood(idata, extend_inferencedata=True)
+        # add prior samples
+        prior = pm.sample_prior_predictive(samples=samples*n_chains, var_names=["U"], random_seed=generator)
+        idata.extend(prior)
+        # add prior likelyhood
+        prior_np = idata["prior"]["U"].to_numpy().reshape((-1, 2))
+        factor = np.sqrt(np.linalg.det(np.multiply(2 * np.pi, prior_cov)))
+        prior_likelyhood = multivariate_normal(mean=prior_mean, cov=prior_cov).pdf(prior_np)
+        prior_likelyhood = np.divide(prior_likelyhood, factor)
+        idata["prior"]["likelihood"] = prior_likelyhood
 
+        return idata
 
 def prior_samples(samples=10000, mean=[5,3], cov=[[4,-2],[-2,4]]):
     values = generator.multivariate_normal(mean=mean, cov=cov, size=samples, check_valid='warn')
     adj_cov = np.multiply(2 * np.pi, cov)
     factor = np.sqrt(np.linalg.det(adj_cov))
-    #likelyhoods = [multivariate_normal(mean=mean, cov=cov).pdf(values[idx][0], values[idx][1]) for idx in range(values.shape[0])] 
     likelyhoods = multivariate_normal(mean=mean, cov=cov).pdf(values)
     likelyhoods = np.divide(likelyhoods, factor)
     return {"samples": values, "likelyhood": likelyhoods}
 
 
 
-def custom_pair_plot(idata, prior):
+def custom_pair_plot(idata):
     # get values from inference data
     x_data = idata["posterior"]["U"][:, :, 0]
     y_data = idata["posterior"]["U"][:, :, 1]
     log_likelihood = idata["log_likelihood"]["G"]
-
+    prior = idata["prior"]["U"]
+    prior_likelihood = idata["prior"]["likelihood"] 
+    
     # prior data
-    x_prior = [prior["samples"][idx][0] for idx in range(prior["samples"].shape[0])]
-    y_prior = [prior["samples"][idx][1] for idx in range(prior["samples"].shape[0])]
-    prior_likelyhood = [prior["likelyhood"][idx] for idx in range(prior["likelyhood"].shape[0])]
+    x_prior = prior[:, :, 0]
+    y_prior = prior[:, :, 1]
 
     # init plot figure
     wrl = [1, 14, 1]
@@ -77,7 +88,7 @@ def custom_pair_plot(idata, prior):
 
     # prior colormap
     prior_colormap = plt.get_cmap('Reds')
-    prior_norm = Normalize(vmin=np.min(prior_likelyhood), vmax=np.max(prior_likelyhood))
+    prior_norm = Normalize(vmin=np.min(prior_likelihood), vmax=np.max(prior_likelihood))
     prior_sm = ScalarMappable(cmap=prior_colormap, norm=prior_norm)
     prior_sm.set_array([])
 
@@ -85,11 +96,11 @@ def custom_pair_plot(idata, prior):
     ax[1].scatter(
         x_prior,
         y_prior,
-        c=prior_likelyhood,
+        c=prior_likelihood,
         cmap=prior_colormap,
         label="Prior",
         s=6,
-        alpha=0.4
+        alpha=0.15
     )
 
     # plot posterior
@@ -118,7 +129,7 @@ if __name__ == "__main__":
     prior_mean = [5, 3]
     idata = metropolis(samples=10000, tune=5000, n_cores=4, n_chains=4, prior_mean=prior_mean)
     prior_data = prior_samples(mean=prior_mean)
-    custom_pair_plot(idata=idata, prior=prior_data)
+    custom_pair_plot(idata=idata)
 
     gs = 40
     az.plot_pair(
