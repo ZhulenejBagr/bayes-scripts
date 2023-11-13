@@ -12,6 +12,7 @@ import os
 generator = np.random.default_rng(222)
 
 def save_plot(folder_path, filename):
+    # if path doesn't exist, create it
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
 
@@ -33,44 +34,12 @@ def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000, prior_mean=[5, 3
         U = pm.MvNormal('U', prior_mean, prior_cov)
         # "G" v zadání, aka "observation operator"
         G_mean = pm.Deterministic('G_mean', -1 / 80 * (3 / np.exp(U[0]) + 1 / np.exp(U[1])))
-        # y a f_Z uplně nevím, jak zakomponovat do modelu
-        # současný nápad je použít G jako střední hodnotu pro normální rozdělení
-        # u tohoto rozdělení určit nějaký rozptyl (podle f_Z?) a nastavit observed na y
-        # G by pak mohlo být f_(U|Y) (u|y), neboli ve figure 3.1d?
+        # noise function
         G = pm.Normal('G', mu=G_mean, sigma=sigma, observed=observed)
         idata = pm.sample(samples, tune=tune, step=pm.Metropolis(), chains=n_chains, cores=n_cores, random_seed=generator)
         likelyhood = pm.compute_log_likelihood(idata, extend_inferencedata=True)
         return idata
 
-def benchmark():
-    iters = 3
-    t1c1 = ti.timeit('metropolis(n_cores = 1, n_chains = 1)', globals = globals(), number = iters)
-    t4c1 = ti.timeit('metropolis(n_cores = 4, n_chains = 1)', globals = globals(), number = iters)
-    t16c1 = ti.timeit('metropolis(n_cores = 16, n_chains = 1)', globals = globals(), number = iters)
-    t1c4 = ti.timeit('metropolis(n_cores = 1, n_chains = 4)', globals = globals(), number = iters)
-    t4c4 = ti.timeit('metropolis(n_cores = 4, n_chains = 4)', globals = globals(), number = iters)
-    t16c4 = ti.timeit('metropolis(n_cores = 16, n_chains = 4)', globals = globals(), number = iters)
-    t1c16 = ti.timeit('metropolis(n_cores = 1, n_chains = 16)', globals = globals(), number = iters)
-    t4c16 = ti.timeit('metropolis(n_cores = 4, n_chains = 16)', globals = globals(), number = iters)
-    t16c16 = ti.timeit('metropolis(n_cores = 16, n_chains = 16)', globals = globals(), number = iters)
-    
-    print(f"Execution time for 1 chain:\n1 core: {t1c1}s\n4 cores: {t4c1}s\n16 cores: {t16c1}s\n")
-    print(f"Execution time for 4 chains:\n1 core: {t1c4}s\n4 cores: {t4c4}s\n16 cores: {t16c4}s\n")
-    print(f"Execution time for 16 chains:\n1 core: {t1c16}s\n4 cores: {t4c16}s\n16 cores: {t16c16}s\n")
-    # Execution time for 1 chain:
-    #1 core: 11.148524099990027s
-    #4 cores: 10.298176300013438s
-    #16 cores: 10.456789700023364s
-
-    #Execution time for 4 chains:
-    #1 core: 37.46264680000604s
-    #4 cores: 86.86602760001551s
-    #16 cores: 87.1835080999881s
-
-    #Execution time for 16 chains:
-    #1 core: 147.5261680999829s
-    #4 cores: 382.13164209999377s
-    #16 cores: 610.7609780000057s
 
 def prior_samples(samples=10000, mean=[5,3], cov=[[4,-2],[-2,4]]):
     values = generator.multivariate_normal(mean=mean, cov=cov, size=samples, check_valid='warn')
@@ -88,19 +57,6 @@ def custom_pair_plot(idata, prior):
     x_data = idata["posterior"]["U"][:, :, 0]
     y_data = idata["posterior"]["U"][:, :, 1]
     log_likelihood = idata["log_likelihood"]["G"]
-    #likelihood = np.log10(log_likelihood)
-    # -- some attempt at normalizing --
-    # bring all values to <0, +inf)
-    #data_likelyhood = np.add(data_likelyhood, -1 * minimum)
-    # apply log to all values
-    #data_likelyhood = np.log2(data_likelyhood)
-    #data_likelyhood = np.divide(data_likelyhood, data_likelyhood.max())
-    # set values greater than 1 to 1
-    #print(data_likelyhood.min())
-    #print(data_likelyhood.max())
-    #counts, bins = np.histogram(data_likelyhood)
-    #plt.stairs(counts, bins)
-    #plt.show()
 
     # prior data
     x_prior = [prior["samples"][idx][0] for idx in range(prior["samples"].shape[0])]
