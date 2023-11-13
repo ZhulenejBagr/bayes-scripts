@@ -1,14 +1,14 @@
 import pymc as pm
 import numpy as np
-import numpy.random as npr
 import arviz as az
 import matplotlib.pyplot as plt
-import timeit as ti
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 from scipy.stats import multivariate_normal
 import pathlib
 import os
+import pickle
+
 generator = np.random.default_rng(222)
 
 def save_plot(folder_path, filename):
