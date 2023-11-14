@@ -150,7 +150,20 @@ def custom_pair_plot(idata, filename="posterior_plot.pdf", folder_path=graphs_pa
     # save plot to file
     save_plot(folder_path=folder_path, filename=filename)
 
+def plot_acceptance(idata, target_acceptance=0.8, log=False, folder_path=graphs_path(), filename="acceptance_plot.pdf"):
+    acceptance = idata["sample_stats"]["accept"].to_numpy()
+    n_chains = acceptance.shape[0]
+    n_samples = acceptance.shape[1]
 
+    fig, ax = plt.subplots(1, 1)
+    samples = range(1, n_samples + 1)
+    if log:
+        ax.set_yscale('log')
+    ax.axhline(target_acceptance)
+    for chain in range(0, n_chains):
+        ax.plot(samples, acceptance[chain, :])
+    
+    save_plot(folder_path=folder_path, filename=filename)
 
 
 if __name__ == "__main__":
@@ -159,7 +172,8 @@ if __name__ == "__main__":
     prior_data = prior_samples(mean=prior_mean)
     save_idata_to_file(idata=idata, folder_path=idata_path(), filename="sample_idata")
     custom_pair_plot(idata=idata)
-
+    plot_acceptance(idata=idata)
+    plot_acceptance(idata=idata, log=True, filename="acceptance_plot_log.pdf")
 
 
 
