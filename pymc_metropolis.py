@@ -4,20 +4,12 @@ import arviz as az
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
-from scipy.stats import multivariate_normal
+from scipy.stats import multivariate_normal, gaussian_kde
 import pathlib
 import os
 import pickle
 
 generator = np.random.default_rng(222)
-
-def save_plot(folder_path, filename):
-    # if path doesn't exist, create it
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-
-    plt.savefig(os.path.join(folder_path, filename), format="pdf", dpi=300)
-
 
 def base_path():
     return pathlib.Path(__file__).parent.resolve()
@@ -28,7 +20,14 @@ def graphs_path():
 def idata_path():
     return os.path.join(base_path(), "idata")
 
-def save_idata_to_file(idata, folder_path, filename):
+def save_plot(filename, folder_path=graphs_path()):
+    # if path doesn't exist, create it
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+    plt.savefig(os.path.join(folder_path, filename), format="pdf", dpi=300)
+
+def save_idata_to_file(idata, filename, folder_path=idata_path()):
     # if path doesn't exist, create it
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
@@ -53,7 +52,7 @@ def read_idata_from_file(folder_path, filename):
     return idata
 
 
-def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000, prior_mean=[5, 3], prior_cov=[[4, -2], [-2, 4]]):
+def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000, prior_mean=[5, 3], prior_cov=[[4, -2], [-2, 4]], step=pm.Metropolis, target_acceptance=0.8):
     observed = -1e-3
     sigma = 2e-4
     with pm.Model() as model:
@@ -65,9 +64,9 @@ def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000, prior_mean=[5, 3
         # noise function
         G = pm.Normal('G', mu=G_mean, sigma=sigma, observed=observed)
         # run sampling algorithm for posterior
-        idata = pm.sample(draws=samples, tune=tune, step=pm.Metropolis(), chains=n_chains, cores=n_cores, random_seed=generator)
+        idata = pm.sample(draws=samples, tune=tune, step=step(), chains=n_chains, cores=n_cores, random_seed=generator, target_acceptance=target_acceptance)
         # add posterior log likelyhood data
-        likelihood = pm.compute_log_likelihood(idata, extend_inferencedata=True)
+        pm.compute_log_likelihood(idata, extend_inferencedata=True)
         # add prior samples
         prior = pm.sample_prior_predictive(samples=samples*n_chains, var_names=["U"], random_seed=generator)
         idata.extend(prior)
@@ -81,7 +80,7 @@ def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000, prior_mean=[5, 3
         return idata
 
 
-def custom_pair_plot(idata, filename="posterior_plot.pdf", folder_path=graphs_path()):
+def custom_pair_plot(idata, filename="posterior_prior_pair_plot.pdf", folder_path=graphs_path()):
     # get values from inference data
     x_data = idata["posterior"]["U"][:, :, 0]
     y_data = idata["posterior"]["U"][:, :, 1]
@@ -147,6 +146,8 @@ def plot_acceptance(idata, target_acceptance=0.8, log=False, folder_path=graphs_
     n_samples = acceptance.shape[1]
 
     fig, ax = plt.subplots(1, 1)
+    fig.set_figwidth(16)
+    fig.set_figheight(9)
     samples = range(1, n_samples + 1)
     if log:
         ax.set_yscale('log')
@@ -156,31 +157,56 @@ def plot_acceptance(idata, target_acceptance=0.8, log=False, folder_path=graphs_
     
     save_plot(folder_path=folder_path, filename=filename)
 
+def plot_posterior_with_prior(idata, filename="posterior_prior_plot.pdf", folder_path=graphs_path()):
+    posterior_data = idata["posterior"]["U"].to_numpy()
+    prior_data = idata["prior"]["U"].to_numpy()
+
+    n_chains = posterior_data.shape[0]
+    n_samples = posterior_data.shape[1]
+
+    linestyles = ["solid", "dotted", "dashed", "dashdot"]
+
+    fig, ax = plt.subplots(1, 2)
+    fig.set_figwidth(16)
+    fig.set_figheight(9)
+    fig.suptitle("Posterior and prior density")
+
+    for i in range(2):
+        lower_bound = np.min((np.min(posterior_data[:, :, i], axis=None), np.min(prior_data[:, :, i], axis=None)))
+        upper_bound = np.max((np.max(posterior_data[:, :, i], axis=None), np.max(prior_data[:, :, i], axis=None)))
+        linspace = np.linspace(lower_bound, upper_bound, 100)
+        ax[i].set_title(f"U[{i}]")
+        for chain in range(0, n_chains):
+            density = gaussian_kde(posterior_data[chain, :, i])
+            ax[i].plot(linspace, density(linspace), linestyle=linestyles[chain], color="black", label=f"Posterior: Chain {chain}")
+        density = gaussian_kde(prior_data[:, i])
+        ax[i].plot(linspace, density(linspace), color="blue", label="Prior")
+        ax[i].legend()
+
+    #fig.legend(ncol=2, loc="upper left")
+    save_plot(folder_path=folder_path, filename=filename)
+
+def plot_autocorr(idata, filename="autocorr.pdf", folder_path=graphs_path()):
+    az.plot_autocorr(idata)
+    save_plot(filename=filename, folder_path=folder_path)
+
+def plot_rank(idata, filename="rank.pdf", folder_path=graphs_path()):
+    az.plot_rank(idata)
+    save_plot(filename=filename, folder_path=folder_path)
+
+def plot_all(idata, folder_path=graphs_path()):
+    custom_pair_plot(idata)
+    plot_acceptance(idata)
+    plot_acceptance(idata, log=True, filename="acceptance_plot_log.pdf")
+    plot_posterior_with_prior(idata)
+    plot_autocorr(idata)
+    plot_rank(idata)
+
 
 if __name__ == "__main__":
     prior_mean = [5, 3]
     #idata = metropolis(samples=10000, tune=5000, n_cores=4, n_chains=4, prior_mean=prior_mean)
-    idata = read_idata_from_file(idata_path(), "sample_idata")
-    save_idata_to_file(idata=idata, folder_path=idata_path(), filename="sample_idata")
-    custom_pair_plot(idata=idata)
-    plot_acceptance(idata=idata)
-    plot_acceptance(idata=idata, log=True, filename="acceptance_plot_log.pdf")
-
-
-
-    gs = 40
-    az.plot_pair(
-        data=idata, 
-        kind="hexbin", 
-        #marginals=True, 
-        gridsize=(round(gs * 1.73), gs), 
-        hexbin_kwargs={"cmap": "Greys"},
-        var_names = ["U", "G_mean"]
-        )
-    save_plot(graphs_path(), "pair_plot.pdf")
-    #az.plot_autocorr(data)
-    #az.plot_rank(data=data)
-    print(az.summary(data=idata))    
-    #az.plot_trace(data=idata, compact=True)
-    #az.plot_ppc(data=data)
+    #save_idata_to_file(idata=idata, folder_path=idata_path(), filename="sample_idata")
+    #idata = read_idata_from_file(idata_path(), "sample_idata")
+    #plot_all(idata)
 
