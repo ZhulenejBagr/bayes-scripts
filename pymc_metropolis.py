@@ -168,7 +168,8 @@ def plot_acceptance(idata, target_acceptance=0.8, log=False, folder_path=graphs_
 
 if __name__ == "__main__":
     prior_mean = [5, 3]
-    idata = metropolis(samples=10000, tune=5000, n_cores=4, n_chains=4, prior_mean=prior_mean)
+    #idata = metropolis(samples=10000, tune=5000, n_cores=4, n_chains=4, prior_mean=prior_mean)
+    idata = read_idata_from_file(idata_path(), "sample_idata")
     prior_data = prior_samples(mean=prior_mean)
     save_idata_to_file(idata=idata, folder_path=idata_path(), filename="sample_idata")
     custom_pair_plot(idata=idata)
