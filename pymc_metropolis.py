@@ -90,7 +90,7 @@ def prior_samples(samples=10000, mean=[5,3], cov=[[4,-2],[-2,4]]):
 
 
 
-def custom_pair_plot(idata):
+def custom_pair_plot(idata, filename="posterior_plot.pdf", folder_path=graphs_path()):
     # get values from inference data
     x_data = idata["posterior"]["U"][:, :, 0]
     y_data = idata["posterior"]["U"][:, :, 1]
@@ -148,7 +148,7 @@ def custom_pair_plot(idata):
     fig.colorbar(prior_sm, label="Prior PDF", cax=ax[2])
 
     # save plot to file
-    save_plot(graphs_path(), "custom_pair_plot.pdf")
+    save_plot(folder_path=folder_path, filename=filename)
 
 
 
