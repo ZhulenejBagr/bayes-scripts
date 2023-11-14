@@ -202,6 +202,12 @@ def plot_all(idata, folder_path=graphs_path()):
     plot_autocorr(idata)
     plot_rank(idata)
 
+def generate_idata_sets():
+    methods = [pm.Metropolis, pm.HamiltonianMC, pm.NUTS, pm.DEMetropolisZ]
+    method_acronyms = ["MH", "HMC", "NUTS", "DEMZ"]
+    for index in range(len(methods)):
+        idata = metropolis(step=methods[index], samples=10000, tune=5000, n_cores=4, n_chains=4)
+        save_idata_to_file(idata, filename=f"{method_acronyms[index]}.idata")
 
 if __name__ == "__main__":
     prior_mean = [5, 3]
@@ -209,4 +215,5 @@ if __name__ == "__main__":
     #save_idata_to_file(idata=idata, folder_path=idata_path(), filename="sample_idata")
     #idata = read_idata_from_file(idata_path(), "sample_idata")
     #plot_all(idata)
+    generate_idata_sets()
 
