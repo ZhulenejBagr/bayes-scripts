@@ -80,15 +80,6 @@ def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000, prior_mean=[5, 3
 
         return idata
 
-def prior_samples(samples=10000, mean=[5,3], cov=[[4,-2],[-2,4]]):
-    values = generator.multivariate_normal(mean=mean, cov=cov, size=samples, check_valid='warn')
-    adj_cov = np.multiply(2 * np.pi, cov)
-    factor = np.sqrt(np.linalg.det(adj_cov))
-    likelyhoods = multivariate_normal(mean=mean, cov=cov).pdf(values)
-    likelyhoods = np.divide(likelyhoods, factor)
-    return {"samples": values, "likelyhood": likelyhoods}
-
-
 
 def custom_pair_plot(idata, filename="posterior_plot.pdf", folder_path=graphs_path()):
     # get values from inference data
@@ -170,7 +161,6 @@ if __name__ == "__main__":
     prior_mean = [5, 3]
     #idata = metropolis(samples=10000, tune=5000, n_cores=4, n_chains=4, prior_mean=prior_mean)
     idata = read_idata_from_file(idata_path(), "sample_idata")
-    prior_data = prior_samples(mean=prior_mean)
     save_idata_to_file(idata=idata, folder_path=idata_path(), filename="sample_idata")
     custom_pair_plot(idata=idata)
     plot_acceptance(idata=idata)
