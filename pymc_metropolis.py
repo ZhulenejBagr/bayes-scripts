@@ -33,16 +33,20 @@ def save_idata_to_file(idata, folder_path, filename):
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
     path = os.path.join(folder_path, filename)
+
     if os.path.exists(path=path):
-        pickle.dump(idata, open(path, "wb"))
+        with open(path, "wb") as file:
+            pickle.dump(obj=idata, file=file)
     else:
-        pickle.dump(idata, open(path, "ab"))
+        with open(path, "ab") as file:
+            pickle.dump(obj=idata, file=file)
         
 
-def read_idata_from_file(idata, folder_path, filename):
-    path = path = os.path.join(folder_path, filename)
-    try: 
-        idata = pickle.load(open(path, "rb"))
+def read_idata_from_file(folder_path, filename):
+    path = os.path.join(folder_path, filename)
+    try:
+        with open(path, "rb") as file: 
+            idata = pickle.load(file=file)
     except:
         print("Error reading idata file")
 
