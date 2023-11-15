@@ -179,7 +179,7 @@ def plot_posterior_with_prior(idata, filename="posterior_prior_plot.pdf", folder
         for chain in range(0, n_chains):
             density = gaussian_kde(posterior_data[chain, :, i])
             ax[i].plot(linspace, density(linspace), linestyle=linestyles[chain], color="black", label=f"Posterior: Chain {chain}")
-        density = gaussian_kde(prior_data[:, i])
+        density = gaussian_kde(prior_data[:, :, i])
         ax[i].plot(linspace, density(linspace), color="blue", label="Prior")
         ax[i].legend()
 
@@ -219,5 +219,4 @@ if __name__ == "__main__":
     idata_paths = [f"{method}.idata" for method in methods]
     for index, path in enumerate(idata_paths):
         idata = read_idata_from_file(filename=path)
-        print(idata["sample_stats"])
         plot_all(idata, folder_path=os.path.join(graphs_path(), methods[index]))
