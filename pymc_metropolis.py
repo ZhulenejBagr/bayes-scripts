@@ -214,3 +214,10 @@ def generate_idata_sets():
 
 if __name__ == "__main__":
     prior_mean = [5, 3]
+    #generate_idata_sets()
+    methods = ["NUTS", "DEMZ", "HMC", "MH"]
+    idata_paths = [f"{method}.idata" for method in methods]
+    for index, path in enumerate(idata_paths):
+        idata = read_idata_from_file(filename=path)
+        print(idata["sample_stats"])
+        plot_all(idata, folder_path=os.path.join(graphs_path(), methods[index]))
