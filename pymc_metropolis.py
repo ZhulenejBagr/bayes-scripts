@@ -195,12 +195,15 @@ def plot_rank(idata, filename="rank.pdf", folder_path=graphs_path()):
     save_plot(filename=filename, folder_path=folder_path)
 
 def plot_all(idata, folder_path=graphs_path()):
-    custom_pair_plot(idata)
-    plot_acceptance(idata)
-    plot_acceptance(idata, log=True, filename="acceptance_plot_log.pdf")
-    plot_posterior_with_prior(idata)
-    plot_autocorr(idata)
-    plot_rank(idata)
+    custom_pair_plot(idata, folder_path=folder_path)
+    try:
+        plot_acceptance(idata, folder_path=folder_path)
+        plot_acceptance(idata, log=True, filename="acceptance_plot_log.pdf", folder_path=folder_path)
+    except:
+        print("Unable to plot acceptance")
+    plot_posterior_with_prior(idata, folder_path=folder_path)
+    plot_autocorr(idata, folder_path=folder_path)
+    plot_rank(idata, folder_path=folder_path)
 
 def generate_idata_sets():
     methods = [pm.Metropolis, pm.HamiltonianMC, pm.NUTS, pm.DEMetropolisZ]
