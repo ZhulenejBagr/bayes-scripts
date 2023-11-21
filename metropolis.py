@@ -29,8 +29,8 @@ def metropolis(
         prior_sigma=np.array([[4, -2], [-2, 4]])):
     # set up result array
     total_samples = samples + tune
-    sampled = {"U": np.zeros((total_samples, 2)), "G": np.zeros(total_samples)}
-    likelihood = np.zeros(total_samples)
+    sampled = {"U": np.zeros((0, 2)), "G": np.zeros(0)}
+    likelihood = np.zeros(0)
     # prior
     prior_pdf = lambda rnd: mvn_pdf(rnd, prior_mean, prior_sigma)
     prior_candidate = lambda mean: generator.multivariate_normal([mean[0], mean[1]], prior_sigma)
@@ -60,15 +60,14 @@ def metropolis(
         random_probability = npr.uniform()
 
         if random_probability < threshold:
-            sampled["U"][iteration] = u_candidate
-            sampled["G"][iteration] = g_candidate
-            likelihood[iteration] = np.log(g_candidate_probability * u_candidate_probability)
+            sampled["U"] = np.append(sampled["U"], u_candidate)
+            sampled["G"] = np.append(sampled["G"], g_candidate)
+            likelihood = np.append(likelihood, np.log(g_candidate_probability * u_candidate_probability))
             u = u_candidate
             g = g_candidate
+            accepted += 1
         else:
-            sampled["U"][iteration] = u
-            sampled["G"][iteration] = g
-            likelihood[iteration] = np.log(g_current_probability * u_current_probability)
+            continue
 
     # remove burn in from samples
     sampled["U"] = sampled["U"][tune:]
