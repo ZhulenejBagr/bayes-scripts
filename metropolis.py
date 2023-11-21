@@ -1,45 +1,43 @@
+from math import pi
 import numpy as np
 import numpy.random as npr
-import matplotlib.pyplot as plt
-from matplotlib.colors import Normalize
-from matplotlib.cm import ScalarMappable
 from scipy.stats import multivariate_normal
-from math import log10, pi
-import pathlib
-import os
-
-def base_path():
-    return pathlib.Path(__file__).parent.resolve()
+import arviz as az
 
 generator = npr.Generator(npr.MT19937())
 
-# Simple metropolis (not MH) implementation for one variable
+# Simple metropolis implementation for one variable
 def norm_pdf(value, mean, std):
     return 1 / (std * np.sqrt(2 * pi)) * np.exp(-1 / 2 * np.power((value - mean) / std, 2))
 
 def mvn_pdf(rnd, mean, cov):
-    cov = np.multiply(2 * np.pi, cov)
-    factor = np.sqrt(np.linalg.det(cov))
-    return multivariate_normal.pdf(rnd, mean, cov) / factor
+    return multivariate_normal.pdf(rnd, mean, cov)
 
+def sample_prior(samples=10000, mean=np.array([5,3]), cov=np.array([[4,-2],[-2,4]])):
+    values = generator.multivariate_normal(mean=mean, cov=cov, size=samples, check_valid='warn')
+    #adj_cov = np.multiply(2 * np.pi, cov)
+    #factor = np.sqrt(np.linalg.det(adj_cov))
 
-def metropolis(samples = 10000, n_cores = 4, n_chains = 4, tune = 3000):
+    likelihoods = np.array(multivariate_normal(mean=mean, cov=cov).pdf(values))
+    #likelyhoods = np.divide(likelihoods, factor)
+    return values, likelihoods
+
+def metropolis(
+        samples=10000,
+        tune=3000,
+        prior_mean=np.array([5,3]),
+        prior_sigma=np.array([[4, -2], [-2, 4]])):
     # set up result array
     total_samples = samples + tune
-    variables = ["U", "G"]
-    samples = {variable: [None] * total_samples for variable in variables}
-    accepted = 0
-    rejected = 0
-    
+    sampled = {"U": np.zeros((total_samples, 2)), "G": np.zeros(total_samples)}
+    likelihood = np.zeros(total_samples)
     # prior
-    prior_mean = np.array([7, 5])
-    prior_sigma = np.array([[4, -2], [-2, 4]])
     prior_pdf = lambda rnd: mvn_pdf(rnd, prior_mean, prior_sigma)
     prior_candidate = lambda mean: generator.multivariate_normal([mean[0], mean[1]], prior_sigma)
     # posterior
     posterior_std = 2e-4
     posterior_operator = lambda u: -1 / 80 * (3 / np.exp(u[0]) + 1 / np.exp(u[1]))
-    observed_value = -1e-3 
+    observed_value = -1e-3
     posterior_pdf = lambda rnd: norm_pdf(rnd - observed_value, 0, posterior_std)
 
     # sampling process
@@ -61,37 +59,54 @@ def metropolis(samples = 10000, n_cores = 4, n_chains = 4, tune = 3000):
         random_probability = npr.uniform()
 
         if random_probability < threshold:
-            samples["U"][iteration] = u_candidate
-            samples["G"][iteration] = g_candidate_probability * u_candidate_probability
+            sampled["U"][iteration] = u_candidate
+            sampled["G"][iteration] = g_candidate
+            likelihood[iteration] = np.log(g_candidate_probability * u_candidate_probability)
             u = u_candidate
             g = g_candidate
-            accepted += 1
         else:
-            samples["U"][iteration] = u
-            samples["G"][iteration] = g_current_probability * u_current_probability
-            rejected += 1
-    print((accepted, rejected))
-    return samples
+            sampled["U"][iteration] = u
+            sampled["G"][iteration] = g
+            likelihood[iteration] = np.log(g_current_probability * u_current_probability)
+
+    # remove burn in from samples
+    sampled["U"] = sampled["U"][tune:]
+    sampled["G"] = sampled["G"][tune:]
+    likelihood = likelihood[tune:]
+
+    # reshape data to match pymc
+    sampled["U"] = sampled["U"].reshape((1, -1, 2))
+    sampled["G"] = sampled["G"].reshape((1, -1))
+
+    # construct idata from sampled data
+    idata = az.convert_to_inference_data({
+        "U": sampled["U"],
+        "G_mean": sampled["G"]
+        })
+    # add likelyhood data to main idata
+    likelihood_idata = az.convert_to_inference_data({
+        "G": likelihood
+    }, group="log_likelihood")
+    idata.extend(likelihood_idata)
+
+    # add prior data
+    prior_samples, prior_likelihood = sample_prior(samples)
+    prior_samples = prior_samples.reshape(1, -1, 2)
+    prior_likelihood = prior_likelihood.reshape(1, -1)
+    prior_idata = az.convert_to_inference_data({
+        "U": prior_samples,
+        "likelihood": prior_likelihood
+    }, group="prior")
+    idata.extend(prior_idata)
+
+    return idata
 
 
 if __name__ == "__main__":
-    idata = metropolis(samples=20000)
-    x = [d[0] for d in idata["U"]]
-    y = [d[1] for d in idata["U"]]
-    density = idata["G"]
-    log_density = [log10(g) for g in density]
-    #maximum = max(log_density)
-    #log_density = [g / max(log_density) for g in log_density]
-    #maximum = max(log_density)
-    #minimum = min(log_density)
-    maximum = max(density)
-    minimum = min(density)
-    colormap = plt.get_cmap('Greys')
-    norm = Normalize(vmin=minimum, vmax=maximum)
-    sm = ScalarMappable(cmap=colormap, norm=norm)
-    sm.set_array([])
-    plt.scatter(x, y, c=density, cmap=colormap, norm=norm, s=6)
-    plt.colorbar(sm, label="Hustota pravděpodobnosti", ax=plt.gca())
-    plt.title("Posterior graf")
-    plt.savefig(os.path.join(base_path(), "Graphs", "Metropolis.pdf"), format="pdf", dpi=300)
+    idata = metropolis(samples=10000)
+    print(idata)
+    print(idata["posterior"])
+    print(idata["log_likelihood"])
+    print(idata["prior"])
+    print()
  
