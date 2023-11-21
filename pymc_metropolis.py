@@ -140,6 +140,9 @@ def custom_pair_plot(idata, filename="posterior_prior_pair_plot.pdf", folder_pat
     # save plot to file
     save_plot(folder_path=folder_path, filename=filename)
 
+    # close figure
+    plt.close()
+
 def plot_acceptance(idata, target_acceptance=0.8, log=False, folder_path=graphs_path(), filename="acceptance_plot.pdf"):
     acceptance = idata["sample_stats"]["accept"].to_numpy()
     n_chains = acceptance.shape[0]
@@ -156,6 +159,9 @@ def plot_acceptance(idata, target_acceptance=0.8, log=False, folder_path=graphs_
         ax.plot(samples, acceptance[chain, :])
     
     save_plot(folder_path=folder_path, filename=filename)
+
+    # close figure
+    plt.close()
 
 def plot_posterior_with_prior(idata, filename="posterior_prior_plot.pdf", folder_path=graphs_path()):
     posterior_data = idata["posterior"]["U"].to_numpy()
@@ -186,13 +192,21 @@ def plot_posterior_with_prior(idata, filename="posterior_prior_plot.pdf", folder
     #fig.legend(ncol=2, loc="upper left")
     save_plot(folder_path=folder_path, filename=filename)
 
+    # close figure
+    plt.close()
+
 def plot_autocorr(idata, filename="autocorr.pdf", folder_path=graphs_path()):
     az.plot_autocorr(idata)
     save_plot(filename=filename, folder_path=folder_path)
 
+    # close figure
+    plt.close()
+
 def plot_rank(idata, filename="rank.pdf", folder_path=graphs_path()):
     az.plot_rank(idata)
     save_plot(filename=filename, folder_path=folder_path)
+    # close figure
+    plt.close()
 
 def plot_all(idata, folder_path=graphs_path()):
     custom_pair_plot(idata, folder_path=folder_path)
