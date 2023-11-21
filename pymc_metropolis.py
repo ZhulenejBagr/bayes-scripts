@@ -52,7 +52,7 @@ def read_idata_from_file(filename, folder_path=idata_path()):
     return idata
 
 
-def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000, prior_mean=[5, 3], prior_cov=[[4, -2], [-2, 4]], step=pm.Metropolis, target_acceptance=0.8):
+def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000, prior_mean=np.array([5, 3]), prior_cov=np.array([[4, -2], [-2, 4]]), step=pm.Metropolis):
     observed = -1e-3
     sigma = 2e-4
     with pm.Model() as model:
@@ -64,7 +64,7 @@ def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000, prior_mean=[5, 3
         # noise function
         G = pm.Normal('G', mu=G_mean, sigma=sigma, observed=observed)
         # run sampling algorithm for posterior
-        idata = pm.sample(draws=samples, tune=tune, step=step(), chains=n_chains, cores=n_cores, random_seed=generator, target_acceptance=target_acceptance)
+        idata = pm.sample(draws=samples, tune=tune, step=step(), chains=n_chains, cores=n_cores, random_seed=generator)
         # add posterior log likelyhood data
         pm.compute_log_likelihood(idata, extend_inferencedata=True)
         # add prior samples
