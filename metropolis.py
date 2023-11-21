@@ -41,9 +41,10 @@ def metropolis(
     posterior_pdf = lambda rnd: norm_pdf(rnd - observed_value, 0, posterior_std)
 
     # sampling process
+    accepted = 0
     g = 0
     u = prior_mean
-    for iteration in range(total_samples):
+    while accepted < total_samples:
         # get U candidate sample
         u_candidate = prior_candidate(u)
         g_candidate = posterior_operator(u_candidate)
