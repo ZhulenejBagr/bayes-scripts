@@ -1,3 +1,6 @@
+import pathlib
+import os
+import pickle
 import pymc as pm
 import numpy as np
 import arviz as az
@@ -5,9 +8,6 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 from scipy.stats import multivariate_normal, gaussian_kde
-import pathlib
-import os
-import pickle
 
 generator = np.random.default_rng(222)
 
@@ -168,7 +168,6 @@ def plot_posterior_with_prior(idata, filename="posterior_prior_plot.pdf", folder
     prior_data = idata["prior"]["U"].to_numpy()
 
     n_chains = posterior_data.shape[0]
-    n_samples = posterior_data.shape[1]
 
     linestyles = ["solid", "dotted", "dashed", "dashdot"]
 
