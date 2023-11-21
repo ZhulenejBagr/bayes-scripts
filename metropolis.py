@@ -1,8 +1,10 @@
 from math import pi
+import os
 import numpy as np
 import numpy.random as npr
 from scipy.stats import multivariate_normal
 import arviz as az
+from pymc_metropolis import save_idata_to_file, plot_all, read_idata_from_file, graphs_path
 
 generator = npr.Generator(npr.MT19937())
 
@@ -24,7 +26,7 @@ def sample_prior(samples=10000, mean=np.array([5,3]), cov=np.array([[4,-2],[-2,4
 
 def metropolis(
         samples=10000,
-        tune=3000,
+        tune=5000,
         prior_mean=np.array([5,3]),
         prior_sigma=np.array([[4, -2], [-2, 4]])):
     # set up result array
@@ -103,10 +105,7 @@ def metropolis(
 
 
 if __name__ == "__main__":
-    idata = metropolis(samples=10000)
-    print(idata)
-    print(idata["posterior"])
-    print(idata["log_likelihood"])
-    print(idata["prior"])
-    print()
- 
+    #idata = metropolis(samples=40000)
+    #save_idata_to_file(idata, filename="custom_MH")
+    idata = read_idata_from_file(filename="custom_MH")
+    plot_all(idata, folder_path=os.path.join(graphs_path(), "MH_custom"))
