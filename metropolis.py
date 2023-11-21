@@ -60,7 +60,7 @@ def metropolis(
         random_probability = npr.uniform()
 
         if random_probability < threshold:
-            sampled["U"] = np.append(sampled["U"], u_candidate)
+            sampled["U"] = np.concatenate((sampled["U"], u_candidate.reshape(1, 2)), axis=0)
             sampled["G"] = np.append(sampled["G"], g_candidate)
             likelihood = np.append(likelihood, np.log(g_candidate_probability * u_candidate_probability))
             u = u_candidate
