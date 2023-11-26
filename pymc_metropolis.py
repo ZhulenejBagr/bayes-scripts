@@ -236,8 +236,8 @@ def generate_idata_sets(
     methods = [pm.Metropolis, pm.HamiltonianMC, pm.NUTS, pm.DEMetropolisZ]
     method_acronyms = ["MH", "HMC", "NUTS", "DEMZ"]
     for method, acronym in zip(methods, method_acronyms):
-        idata = metropolis(step=method, samples=2500, tune=2500, n_cores=4, n_chains=4)
-        save_idata_to_file(idata, filename=f"{acronym}.idata")
+        idata = metropolis(step=method, samples=samples, tune=tune, n_cores=4, n_chains=4, prior_mean=prior_mean, prior_cov=prior_cov)
+        save_idata_to_file(idata, filename=f"{prefix}.{acronym}.idata")
 
 if __name__ == "__main__":
     prior_mean = [5, 3]
