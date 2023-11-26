@@ -259,3 +259,9 @@ def plot_idata_sets(prefix="regular"):
     for index, path in enumerate(idata_paths):
         idata = read_idata_from_file(filename=path)
         plot_all(idata, folder_path=os.path.join(graphs_path(), prefix, methods[index]))
+
+if __name__ == "__main__":
+    #generate_regular_idata_sets()
+    #generate_offset_idata_sets()
+    plot_idata_sets()
+    plot_idata_sets(prefix="offset")
