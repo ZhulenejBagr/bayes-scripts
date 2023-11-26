@@ -25,7 +25,7 @@ def save_plot(filename, folder_path=graphs_path()):
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
 
-    plt.savefig(os.path.join(folder_path, filename), format="pdf", dpi=300)
+    plt.savefig(os.path.join(folder_path, filename), dpi=300)
 
 def save_idata_to_file(idata, filename, folder_path=idata_path()):
     # if path doesn't exist, create it
@@ -80,14 +80,16 @@ def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000, prior_mean=np.ar
         return idata
 
 
-def custom_pair_plot(idata, filename="posterior_prior_pair_plot.pdf", folder_path=graphs_path()):
+def custom_pair_plot(idata, filename="posterior_prior_pair_plot.png", folder_path=graphs_path()):
     # get values from inference data
     x_data = idata["posterior"]["U"][:, :, 0]
     y_data = idata["posterior"]["U"][:, :, 1]
     log_likelihood = idata["log_likelihood"]["G"]
     prior = idata["prior"]["U"]
-    prior_likelihood = idata["prior"]["likelihood"] 
-    
+    prior_likelihood = idata["prior"]["likelihood"]
+
+    # change to regular likelyhood
+    #log_likelihood = np.exp(log_likelihood)
     # prior data
     x_prior = prior[:, :, 0]
     y_prior = prior[:, :, 1]
