@@ -220,7 +220,12 @@ def plot_all(idata, folder_path=graphs_path()):
     plot_autocorr(idata, folder_path=folder_path)
     plot_rank(idata, folder_path=folder_path)
 
-def generate_idata_sets():
+def generate_idata_sets(
+        prior_mean=np.array([5, 3]),
+        prior_cov=np.array([[4, -2], [-2, 4]]),
+        prefix="regular",
+        samples=10000,
+        tune=5000):
     methods = [pm.Metropolis, pm.HamiltonianMC, pm.NUTS, pm.DEMetropolisZ]
     method_acronyms = ["MH", "HMC", "NUTS", "DEMZ"]
     for method, acronym in zip(methods, method_acronyms):
