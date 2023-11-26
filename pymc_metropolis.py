@@ -90,6 +90,7 @@ def custom_pair_plot(idata, filename="posterior_prior_pair_plot.png", folder_pat
 
     # change to regular likelyhood
     #log_likelihood = np.exp(log_likelihood)
+
     # prior data
     x_prior = prior[:, :, 0]
     y_prior = prior[:, :, 1]
@@ -134,6 +135,10 @@ def custom_pair_plot(idata, filename="posterior_prior_pair_plot.png", folder_pat
         alpha=0.05
     )
 
+    # fix axis limits
+    ax[1].set_xlim([-5, 15])
+    ax[1].set_ylim([-7.5, 12.5])
+
     # add colorbars and legend
     plt.legend('upper left')
     fig.colorbar(posterior_sm, label="Posterior PDF", cax=ax[0])
@@ -159,7 +164,7 @@ def plot_acceptance(idata, target_acceptance=0.8, log=False, folder_path=graphs_
     ax.axhline(target_acceptance)
     for chain in range(0, n_chains):
         ax.plot(samples, acceptance[chain, :])
-    
+
     save_plot(folder_path=folder_path, filename=filename)
 
     # close figure
@@ -199,7 +204,6 @@ def plot_posterior_with_prior(idata, filename="posterior_prior_plot.pdf", folder
 def plot_autocorr(idata, filename="autocorr.pdf", folder_path=graphs_path()):
     az.plot_autocorr(idata)
     save_plot(filename=filename, folder_path=folder_path)
-
     # close figure
     plt.close()
 
@@ -248,6 +252,7 @@ def generate_offset_idata_sets():
     prior_mean = np.array([8, 6])
     prior_cov = np.array([[16, -2], [-2, 16]])
     return generate_idata_sets(prior_mean=prior_mean, prior_cov=prior_cov, prefix="offset")
+
 def plot_idata_sets(prefix="regular"):
     methods = ["NUTS", "DEMZ", "HMC", "MH"]
     idata_paths = [f"{prefix}.{method}.idata" for method in methods]
