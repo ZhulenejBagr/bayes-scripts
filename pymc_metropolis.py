@@ -209,6 +209,12 @@ def plot_rank(idata, filename="rank.pdf", folder_path=graphs_path()):
     # close figure
     plt.close()
 
+def plot_trace(idata, filename="trace.pdf", folder_path=graphs_path()):
+    az.plot_trace(idata, figsize=[16, 9])
+    save_plot(filename=filename, folder_path=folder_path)
+    # close figure
+    plt.close()
+
 def plot_all(idata, folder_path=graphs_path()):
     custom_pair_plot(idata, folder_path=folder_path)
     try:
@@ -219,6 +225,7 @@ def plot_all(idata, folder_path=graphs_path()):
     plot_posterior_with_prior(idata, folder_path=folder_path)
     plot_autocorr(idata, folder_path=folder_path)
     plot_rank(idata, folder_path=folder_path)
+    plot_trace(idata, folder_path=folder_path)
 
 def generate_idata_sets(
         prior_mean=np.array([5, 3]),
