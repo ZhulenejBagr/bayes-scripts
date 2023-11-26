@@ -230,6 +230,15 @@ def generate_idata_sets():
 if __name__ == "__main__":
     prior_mean = [5, 3]
     #generate_idata_sets()
+def generate_regular_idata_sets():
+    prior_mean = np.array([5, 3])
+    prior_cov = np.array([[4, -2], [-2, 4]])
+    return generate_idata_sets(prior_mean=prior_mean, prior_cov=prior_cov)
+
+def generate_offset_idata_sets():
+    prior_mean = np.array([8, 6])
+    prior_cov = np.array([[16, -2], [-2, 16]])
+    return generate_idata_sets(prior_mean=prior_mean, prior_cov=prior_cov, prefix="offset")
     methods = ["NUTS", "DEMZ", "HMC", "MH"]
     idata_paths = [f"{method}.idata" for method in methods]
     for index, path in enumerate(idata_paths):
