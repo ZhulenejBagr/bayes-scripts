@@ -239,9 +239,6 @@ def generate_idata_sets(
         idata = metropolis(step=method, samples=samples, tune=tune, n_cores=4, n_chains=4, prior_mean=prior_mean, prior_cov=prior_cov)
         save_idata_to_file(idata, filename=f"{prefix}.{acronym}.idata")
 
-if __name__ == "__main__":
-    prior_mean = [5, 3]
-    #generate_idata_sets()
 def generate_regular_idata_sets():
     prior_mean = np.array([5, 3])
     prior_cov = np.array([[4, -2], [-2, 4]])
@@ -251,8 +248,9 @@ def generate_offset_idata_sets():
     prior_mean = np.array([8, 6])
     prior_cov = np.array([[16, -2], [-2, 16]])
     return generate_idata_sets(prior_mean=prior_mean, prior_cov=prior_cov, prefix="offset")
+def plot_idata_sets(prefix="regular"):
     methods = ["NUTS", "DEMZ", "HMC", "MH"]
-    idata_paths = [f"{method}.idata" for method in methods]
+    idata_paths = [f"{prefix}.{method}.idata" for method in methods]
     for index, path in enumerate(idata_paths):
         idata = read_idata_from_file(filename=path)
-        plot_all(idata, folder_path=os.path.join(graphs_path(), methods[index]))
+        plot_all(idata, folder_path=os.path.join(graphs_path(), prefix, methods[index]))
