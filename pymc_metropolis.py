@@ -52,7 +52,16 @@ def read_idata_from_file(filename, folder_path=idata_path()):
     return idata
 
 
-def metropolis(samples=10000, n_cores=4, n_chains=4, tune=3000, prior_mean=np.array([5, 3]), prior_cov=np.array([[4, -2], [-2, 4]]), step=pm.Metropolis):
+def sample_regular(
+        samples=10000,
+        n_cores=4, n_chains=4,
+        tune=3000,
+        prior_mean=np.array([5, 3]),
+        prior_cov=np.array([[4, -2], [-2, 4]]),
+        step=pm.Metropolis):
+    """
+    Sample using a directly defined model with PYMC functions
+    """
     observed = -1e-3
     sigma = 2e-4
     with pm.Model() as model:
@@ -240,7 +249,7 @@ def generate_idata_sets(
     methods = [pm.Metropolis, pm.HamiltonianMC, pm.NUTS, pm.DEMetropolisZ]
     method_acronyms = ["MH", "HMC", "NUTS", "DEMZ"]
     for method, acronym in zip(methods, method_acronyms):
-        idata = metropolis(step=method, samples=samples, tune=tune, n_cores=4, n_chains=4, prior_mean=prior_mean, prior_cov=prior_cov)
+        idata = sample_regular(step=method, samples=samples, tune=tune, n_cores=4, n_chains=4, prior_mean=prior_mean, prior_cov=prior_cov)
         save_idata_to_file(idata, filename=f"{prefix}.{acronym}.idata")
 
 def generate_regular_idata_sets():
