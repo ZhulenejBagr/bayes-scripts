@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 from scipy.stats import multivariate_normal, gaussian_kde
+import blackbox
 
 generator = np.random.default_rng(222)
 
@@ -87,6 +88,39 @@ def sample_regular(
         idata["prior"]["likelihood"] = prior_likelyhood
 
         return idata
+
+def sample_blackbox(
+        samples=10000,
+        n_cores=4,
+        n_chains=4,
+        tune=3000,
+        prior_mean=np.array([5, 3]),
+        step=pm.Metropolis,
+        ):
+    """
+    Sample via a blackbox function and pytensor wrapper
+    """
+    observed = -1e-3
+
+    with pm.Model() as model:
+        pm.CustomDist("U", prior_mean, logp=blackbox.log_likelihood, random=blackbox.sample)
+        # run sampling algorithm for posterior
+        idata = pm.sample(draws=samples, tune=tune, step=step(), chains=n_chains, cores=n_cores, random_seed=generator)
+        # add posterior log likelyhood data
+        pm.compute_log_likelihood(idata, extend_inferencedata=True)
+        # add prior samples
+        #prior = pm.sample_prior_predictive(samples=samples*n_chains, var_names=["U"], random_seed=generator)
+        #idata.extend(prior)
+        # add prior likelyhood
+        #prior_np = idata["prior"]["U"].to_numpy().reshape((-1, 2))
+        #factor = np.sqrt(np.linalg.det(np.multiply(2 * np.pi, prior_cov)))
+        #prior_likelyhood = multivariate_normal(mean=prior_mean, cov=prior_cov).pdf(prior_np)
+        #prior_likelyhood = np.divide(prior_likelyhood, factor)
+        #idata["prior"]["likelihood"] = prior_likelyhood
+
+        return idata
+
+
 
 
 def custom_pair_plot(idata, filename="posterior_prior_pair_plot.png", folder_path=graphs_path()):
