@@ -213,7 +213,13 @@ def plot_acceptance(idata, target_acceptance=0.8, log=False, folder_path=graphs_
     # close figure
     plt.close()
 
-def plot_posterior_with_prior(idata, filename="posterior_prior_plot.pdf", folder_path=graphs_path()):
+def plot_posterior_with_prior(
+        idata, 
+        filename="posterior_prior_plot.pdf", 
+        folder_path=graphs_path(), 
+        analytic=True, 
+        analytic_mean=np.array([5, 3]), 
+        analytic_cov=np.array([[4, -2], [-2, 4]])):
     posterior_data = idata["posterior"]["U"].to_numpy()
     prior_data = idata["prior"]["U"].to_numpy()
 
@@ -225,17 +231,35 @@ def plot_posterior_with_prior(idata, filename="posterior_prior_plot.pdf", folder
     fig.set_figwidth(16)
     fig.set_figheight(9)
     fig.suptitle("Posterior and prior density")
+    ax[0].set_xlim([-5, 15])
+    ax[1].set_xlim([-7.5, 12.5])
+
 
     for i in range(2):
         lower_bound = np.min((np.min(posterior_data[:, :, i], axis=None), np.min(prior_data[:, :, i], axis=None)))
         upper_bound = np.max((np.max(posterior_data[:, :, i], axis=None), np.max(prior_data[:, :, i], axis=None)))
         linspace = np.linspace(lower_bound, upper_bound, 100)
+
         ax[i].set_title(f"U[{i}]")
         for chain in range(0, n_chains):
             density = gaussian_kde(posterior_data[chain, :, i])
             ax[i].plot(linspace, density(linspace), linestyle=linestyles[chain], color="black", label=f"Posterior: Chain {chain}")
-        density = gaussian_kde(prior_data[:, :, i])
-        ax[i].plot(linspace, density(linspace), color="blue", label="Prior")
+        
+        if not analytic:
+            density = gaussian_kde(prior_data[:, :, i])
+            ax[i].plot(linspace, density(linspace), color="blue", label="Prior")
+        else:
+            linspace0 = np.linspace(-5, 15, 250)
+            linspace1 = np.linspace(-7.5, 12.5, 250)
+            linspaces = [linspace0, linspace1]
+            x, y = np.meshgrid(linspace0, linspace1)
+            grid = np.dstack((x, y))
+            pdf_values = multivariate_normal(mean=analytic_mean, cov=analytic_cov).pdf(grid)
+            density = np.sum(pdf_values, axis=1-i)
+            # normalize
+            # TODO fix normalization
+            density = np.divide(density, 50)
+            ax[i].plot(linspaces[i], density, color="blue", label="Prior")
         ax[i].legend()
 
     #fig.legend(ncol=2, loc="upper left")
