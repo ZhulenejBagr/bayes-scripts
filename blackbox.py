@@ -16,8 +16,9 @@ def norm_pdf(value, sigma, mu=0):
 
 # bivariate normal distribution pdf
 def bvn_pdf(value, mu, sigma):
-    k = 2
-    return (2 * np.pi) ** (k) * np.linalg.det(sigma) ** (-1 / 2) * np.exp(-1 / 2 * np.transpose(value - mu) * np.linalg.inv(sigma) * (value - mu))
+    det = np.power(2 * np.pi, 2) * np.power(np.linalg.det(sigma), -1 / 2)
+    return np.array(1)
+    return det * np.exp(-1 / 2 * np.dot(np.dot(np.transpose(np.subtract(value, mu)), np.linalg.inv(sigma)), np.subtract(value, mu)))
 
 def observation_operator(value):
     return -1 / 80 * (3 / np.exp(value[0]) + 1 / np.exp(value[1]))
@@ -26,15 +27,12 @@ def log_probability(value, mu):
     sigma = np.array([[4, -2], [-2, 4]])
     noise_sigma = 2e-4
     observed = -1e-3
-    #operator = np.multiply(-1 / 80, np.add(3 / np.exp(value[0]),  1 / np.exp(value[1])))
     numerator_operator = observation_operator(value)
     numerator_mu = np.subtract(numerator_operator, observed)
-    numerator = norm_pdf(numerator_mu, noise_sigma) * bvn_pdf(value, mu, sigma)
+    numerator = np.multiply(norm_pdf(numerator_mu, noise_sigma), bvn_pdf(value, mu, sigma))
 
     denominator_operator = observation_operator(mu)
     denominator_mu = np.subtract(denominator_operator, observed)
-    denominator = norm_pdf(denominator_mu, sigma) * bvn_pdf(mu, value, sigma)
+    denominator = np.multiply(norm_pdf(denominator_mu, noise_sigma), bvn_pdf(mu, value, sigma))
 
-    #likelihood = likelihood * multivariate_normal(mu, sigma).pdf(value)
-    return np.log(np.divide(numerator / denominator))
-
+    return np.log(np.divide(numerator, denominator))
