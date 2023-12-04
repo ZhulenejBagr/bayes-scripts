@@ -21,7 +21,7 @@ def sample_prior(samples=10000, mean=np.array([5,3]), cov=np.array([[4,-2],[-2,4
     #factor = np.sqrt(np.linalg.det(adj_cov))
 
     likelihoods = np.array(multivariate_normal(mean=mean, cov=cov).pdf(values))
-    #likelyhoods = np.divide(likelihoods, factor)
+    #likelihoods = np.divide(likelihoods, factor)
     return values, likelihoods
 
 def metropolis(
@@ -41,6 +41,8 @@ def metropolis(
     posterior_operator = lambda u: -1 / 80 * (3 / np.exp(u[0]) + 1 / np.exp(u[1]))
     observed_value = -1e-3
     posterior_pdf = lambda rnd: norm_pdf(rnd - observed_value, 0, posterior_std)
+    #adj_cov = np.multiply(2 * np.pi, prior_sigma)
+    #factor = np.sqrt(np.linalg.det(adj_cov))
 
     # sampling process
     accepted = 0
@@ -64,7 +66,7 @@ def metropolis(
         if random_probability < threshold:
             sampled["U"] = np.concatenate((sampled["U"], u_candidate.reshape(1, 2)), axis=0)
             sampled["G"] = np.append(sampled["G"], g_candidate)
-            likelihood = np.append(likelihood, np.log(g_candidate_probability * u_candidate_probability))
+            likelihood = np.append(likelihood, np.log(g_candidate_probability))
             u = u_candidate
             g = g_candidate
             accepted += 1
@@ -75,6 +77,7 @@ def metropolis(
     sampled["U"] = sampled["U"][tune:]
     sampled["G"] = sampled["G"][tune:]
     likelihood = likelihood[tune:]
+    #likelihood = np.divide(likelihood, factor)
 
     # reshape data to match pymc
     sampled["U"] = sampled["U"].reshape((1, -1, 2))
