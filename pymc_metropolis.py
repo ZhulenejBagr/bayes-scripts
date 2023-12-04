@@ -103,7 +103,7 @@ def sample_blackbox(
     observed = -1e-3
 
     with pm.Model() as model:
-        U = pm.CustomDist("U", prior_mean, logp=blackbox.log_likelihood, random=blackbox.sample, ndim_supp=1, ndims_params=(1,))
+        pm.CustomDist("U", prior_mean, logp=blackbox.log_probability, random=blackbox.sample, ndim_supp=1, ndims_params=(1,))
         # run sampling algorithm for posterior
         idata = pm.sample(draws=samples, tune=tune, step=step(), chains=n_chains, cores=n_cores, random_seed=generator, initvals={"U": prior_mean})
         # add posterior log likelyhood data
