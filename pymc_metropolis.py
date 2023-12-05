@@ -214,11 +214,13 @@ def plot_acceptance(idata, target_acceptance=0.8, log=False, folder_path=graphs_
     plt.close()
 
 def plot_posterior_with_prior(
-        idata, 
-        filename="posterior_prior_plot.pdf", 
-        folder_path=graphs_path(), 
-        analytic=True, 
-        analytic_mean=np.array([5, 3]), 
+        idata,
+        filename="posterior_prior_plot.pdf",
+        folder_path=graphs_path(),
+        merge_chains=False,
+        single_plot=False,
+        analytic=True,
+        analytic_mean=np.array([5, 3]),
         analytic_cov=np.array([[4, -2], [-2, 4]])):
     posterior_data = idata["posterior"]["U"].to_numpy()
     prior_data = idata["prior"]["U"].to_numpy()
