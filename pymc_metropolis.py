@@ -362,6 +362,73 @@ def plot_idata_sets(prefix="regular"):
         idata = read_idata_from_file(filename=path)
         plot_all(idata, folder_path=os.path.join(graphs_path(), prefix, methods[index]))
 
+def plot_posterior_with_prior_compare(
+        idata_list,
+        filename="posterior_prior_plot_compare.pdf",
+        folder_path=graphs_path(),
+        merge_chains=False,
+        analytic=True,
+        analytic_mean=np.array([5, 3]),
+        analytic_cov=np.array([[4, -2], [-2, 4]])):
+    fig, ax = plt.subplots(2, 2)
+    names = ["MH", "Custom MH", "DEMZ", "NUTS"]
+    fig.set_figwidth(16)
+    fig.set_figheight(9)
+    for j in range(4):
+        idata = idata_list[j]
+        current_ax = ax[j // 2][j % 2]
+        posterior_data = idata["posterior"]["U"].to_numpy()
+        prior_data = idata["prior"]["U"].to_numpy()
+
+        n_chains = posterior_data.shape[0]
+
+        linestyles = ["solid", "dotted", "dashed", "dashdot"]
+        colors = ["blue", "red"]
+        prior_colors = ["darkblue", "darkred"]
+
+        current_ax.set_xlim([-7.5, 15])
+
+        fig.suptitle("Porovnání metod vzorkování")
+
+        for i in range(2):
+            lower_bound = np.min((np.min(posterior_data[:, :, i], axis=None), np.min(prior_data[:, :, i], axis=None)))
+            upper_bound = np.max((np.max(posterior_data[:, :, i], axis=None), np.max(prior_data[:, :, i], axis=None)))
+            linspace = np.linspace(lower_bound, upper_bound, 250)
+
+            current_ax.set_title(f"{names[j]}")
+
+            if not merge_chains:
+                for chain in range(0, n_chains):
+                    density = gaussian_kde(posterior_data[chain, :, i])
+                    current_ax.plot(linspace, density(linspace), linestyle=linestyles[chain], color=colors[i], label=f"Posterior[{i}]: Chain {chain}")
+            else:
+                merged = posterior_data[:, :, i].flatten()
+                density = gaussian_kde(merged)
+                current_ax.plot(linspace, density(linspace), color=colors[i], label=f"Posterior[{i}]")
+
+            if analytic:
+                linspace0 = np.linspace(-5, 15, 250)
+                linspace1 = np.linspace(-7.5, 12.5, 250)
+                linspaces = [linspace0, linspace1]
+                x, y = np.meshgrid(linspace0, linspace1)
+                grid = np.dstack((x, y))
+                pdf_values = multivariate_normal(mean=analytic_mean, cov=analytic_cov).pdf(grid)
+                density = np.sum(pdf_values, axis=1-i)
+                # normalize
+                density = np.divide(density, 12.5)
+                current_ax.plot(linspaces[i], density, color=prior_colors[i], label=f"Prior[{i}]")
+            
+            if not analytic:
+                current_ax.plot(linspace, density(linspace), color=prior_colors[i], label=f"Prior[{i}]")
+        
+            current_ax.legend()
+
+    #fig.legend(ncol=2, loc="upper left")
+    save_plot(folder_path=folder_path, filename=filename)
+
+    # close figure
+    plt.close()
+
 if __name__ == "__main__":
     #generate_regular_idata_sets()
     #generate_offset_idata_sets()
