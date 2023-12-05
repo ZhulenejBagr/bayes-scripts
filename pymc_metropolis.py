@@ -228,28 +228,50 @@ def plot_posterior_with_prior(
     n_chains = posterior_data.shape[0]
 
     linestyles = ["solid", "dotted", "dashed", "dashdot"]
+    colors = ["blue", "red"]
+    prior_colors = ["darkblue", "darkred"]
 
-    fig, ax = plt.subplots(1, 2)
+    if single_plot:
+        fig, ax = plt.subplots(1, 1)
+        ax.set_xlim([-7.5, 15])
+    else:
+        fig, ax = plt.subplots(1, 2)
+        ax[0].set_xlim([-5, 15])
+        ax[1].set_xlim([-7.5, 12.5])
+
     fig.set_figwidth(16)
     fig.set_figheight(9)
     fig.suptitle("Posterior and prior density")
-    ax[0].set_xlim([-5, 15])
-    ax[1].set_xlim([-7.5, 12.5])
-
 
     for i in range(2):
         lower_bound = np.min((np.min(posterior_data[:, :, i], axis=None), np.min(prior_data[:, :, i], axis=None)))
         upper_bound = np.max((np.max(posterior_data[:, :, i], axis=None), np.max(prior_data[:, :, i], axis=None)))
-        linspace = np.linspace(lower_bound, upper_bound, 100)
+        linspace = np.linspace(lower_bound, upper_bound, 250)
 
-        ax[i].set_title(f"U[{i}]")
-        for chain in range(0, n_chains):
-            density = gaussian_kde(posterior_data[chain, :, i])
-            ax[i].plot(linspace, density(linspace), linestyle=linestyles[chain], color="black", label=f"Posterior: Chain {chain}")
-        
+        if not single_plot:
+            ax[i].set_title(f"U[{i}]")
+        else:
+            ax.set_title("U")
+
+        if not merge_chains:
+            for chain in range(0, n_chains):
+                density = gaussian_kde(posterior_data[chain, :, i])
+                if not single_plot:
+                    ax[i].plot(linspace, density(linspace), linestyle=linestyles[chain], color="blue", label=f"Posterior: Chain {chain}")
+                else:
+                    ax.plot(linspace, density(linspace), linestyle=linestyles[chain], color=colors[i], label=f"Posterior[{i}]: Chain {chain}")
+        else:
+            merged = posterior_data[:, :, i].flatten()
+            density = gaussian_kde(merged)
+            if not single_plot:
+                ax[i].plot(linspace, density(linspace), color="blue", label="Posterior")
+            else:
+                ax.plot(linspace, density(linspace), color=colors[i], label=f"Posterior[{i}]")
+
         if not analytic:
             density = gaussian_kde(prior_data[:, :, i])
-            ax[i].plot(linspace, density(linspace), color="blue", label="Prior")
+            if not single_plot:
+                ax[i].plot(linspace, density(linspace), color="darkblue", label="Prior")
         else:
             linspace0 = np.linspace(-5, 15, 250)
             linspace1 = np.linspace(-7.5, 12.5, 250)
@@ -259,10 +281,19 @@ def plot_posterior_with_prior(
             pdf_values = multivariate_normal(mean=analytic_mean, cov=analytic_cov).pdf(grid)
             density = np.sum(pdf_values, axis=1-i)
             # normalize
-            # TODO fix normalization
-            density = np.divide(density, 50)
-            ax[i].plot(linspaces[i], density, color="blue", label="Prior")
-        ax[i].legend()
+            density = np.divide(density, 12.5)
+            if not single_plot:
+                ax[i].plot(linspaces[i], density, color="darkblue", label="Prior")
+            else:
+                ax.plot(linspaces[i], density, color=prior_colors[i], label=f"Prior[{i}]")
+        
+        if single_plot and not analytic:
+            ax.plot(linspace, density(linspace), color=prior_colors[i], label=f"Prior[{i}]")
+        
+        if not single_plot:
+            ax[i].legend()
+        else:
+            ax.legend()
 
     #fig.legend(ncol=2, loc="upper left")
     save_plot(folder_path=folder_path, filename=filename)
