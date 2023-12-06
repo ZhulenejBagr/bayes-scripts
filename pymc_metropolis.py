@@ -519,6 +519,10 @@ def custom_pair_plot_compare(idata_list, filename="posterior_prior_pair_plot_com
 
     # close figure
     plt.close()
+def compare_pair_plot():
+    idata_names = ["MH", "custom_MH", "DEMZ", "NUTS"]
+    idata_list = [read_idata_from_file(f"regular.{name}.idata") for name in idata_names]
+    custom_pair_plot_compare(idata_list)
 if __name__ == "__main__":
     #generate_regular_idata_sets()
     #generate_offset_idata_sets()
@@ -526,7 +530,8 @@ if __name__ == "__main__":
     print(az.summary(idata))
     #save_idata_to_file(idata, filename="blackbox.idata")
     #idata = read_idata_from_file("blackbox.idata")
-    compare_posterior_with_prior()
+    #compare_posterior_with_prior()
+    compare_pair_plot()
     #print(idata)
     #print(idata["posterior"])
     #print(idata["sample_stats"])
