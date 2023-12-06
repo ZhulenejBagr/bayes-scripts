@@ -433,6 +433,92 @@ def compare_posterior_with_prior():
     idata_names = ["MH", "custom_MH", "DEMZ", "NUTS"]
     idata_list = [read_idata_from_file(f"regular.{name}.idata") for name in idata_names]
     plot_posterior_with_prior_compare(idata_list, merge_chains=True, analytic=True)
+
+def custom_pair_plot_compare(idata_list, filename="posterior_prior_pair_plot_compare.pdf", folder_path=graphs_path()):
+    wrl = [1, 1, 14, 1, 3, 1, 1, 14, 1]
+    fig, ax = plt.subplots(nrows=2, ncols=9, gridspec_kw={'width_ratios': wrl})
+    fig.set_figwidth(16)
+    fig.set_figheight(9)
+    names = ["MH", "Custom MH", "DEMZ", "NUTS"]
+
+    for j in range(4):
+        # get values from inference data
+        idata = idata_list[j]
+        x_data = idata["posterior"]["U"][:, :, 0]
+        y_data = idata["posterior"]["U"][:, :, 1]
+        log_likelihood = idata["log_likelihood"]["G"]
+        prior = idata["prior"]["U"]
+        prior_likelihood = idata["prior"]["likelihood"]
+
+        # change to regular likelyhood
+        #log_likelihood = np.exp(log_likelihood)
+
+        # prior data
+        x_prior = prior[:, :, 0]
+        y_prior = prior[:, :, 1]
+
+        # posterior colormap
+        posterior_colormap = plt.get_cmap('binary')
+        posterior_norm = Normalize(vmin=np.min(log_likelihood), vmax=np.max(log_likelihood))
+        posterior_sm = ScalarMappable(cmap=posterior_colormap, norm=posterior_norm)
+        posterior_sm.set_array([])
+
+        # prior colormap
+        prior_colormap = plt.get_cmap('Reds')
+        prior_norm = Normalize(vmin=np.min(prior_likelihood), vmax=np.max(prior_likelihood))
+        prior_sm = ScalarMappable(cmap=prior_colormap, norm=prior_norm)
+        prior_sm.set_array([])
+
+        left_ax = ax[j // 2][5 * (j % 2)]
+        middle_ax = ax[j // 2][5 * (j % 2) + 2]
+        right_ax = ax[j // 2][5 * (j % 2) + 3]
+
+        middle_ax.set_title(f"{names[j]}")
+
+        # plot prior
+        middle_ax.scatter(
+            x_prior,
+            y_prior,
+            c=prior_likelihood,
+            cmap=prior_colormap,
+            label="Prior",
+            s=6,
+            alpha=0.15
+        )
+
+        # plot posterior
+        middle_ax.scatter(
+            x_data,
+            y_data,
+            c=log_likelihood,
+            cmap=posterior_colormap,
+            label="Posterior",
+            s=6,
+            alpha=0.05
+        )
+
+        # fix axis limits
+        middle_ax.set_xlim([-5, 15])
+        middle_ax.set_ylim([-7.5, 12.5])
+
+        # add colorbars and legend
+        fig.colorbar(posterior_sm, label="Posterior PDF", cax=left_ax)
+        fig.colorbar(prior_sm, label="Prior PDF", cax=right_ax)
+        middle_ax.legend()
+
+
+    ax[0][4].axis("off")
+    ax[1][4].axis("off")
+    ax[0][1].axis("off")
+    ax[1][1].axis("off")
+    ax[0][6].axis("off")
+    ax[1][6].axis("off")
+
+    # save plot to file
+    save_plot(folder_path=folder_path, filename=filename)
+
+    # close figure
+    plt.close()
 if __name__ == "__main__":
     #generate_regular_idata_sets()
     #generate_offset_idata_sets()
