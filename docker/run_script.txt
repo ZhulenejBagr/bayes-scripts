@@ -1,4 +1,8 @@
+# with dockerfile
 docker build -t flow123 .
 docker create -it --name flow123 flow123
 docker start flow123
 docker exec -it flow123 /bin/bash
+
+# base image
+docker run --rm -it -v ${pwd}\..:/mnt flow123d/endorse_ci:a785dd
