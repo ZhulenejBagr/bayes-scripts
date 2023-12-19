@@ -6,3 +6,8 @@ docker exec -it flow123 /bin/bash
 
 # base image
 docker run --rm -it -v ${pwd}\..:/mnt flow123d/endorse_ci:a785dd
+# pak v containeru
+cd /home/flow
+/mnt/docker/setup_env.sh
+source activate_venv
+/mnt/generate_and_plot.sh
