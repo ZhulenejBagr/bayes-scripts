@@ -343,6 +343,7 @@ def generate_idata_sets(
     method_acronyms = ["MH", "NUTS", "DEMZ"]
     for method, acronym in zip(methods, method_acronyms):
         idata = sample_regular(step=method, samples=samples, tune=tune, n_cores=4, n_chains=4, prior_mean=prior_mean, prior_cov=prior_cov)
+        print(az.summary(idata), "\n\n")
         save_idata_to_file(idata, filename=f"{prefix}.{acronym}.idata")
 
 def generate_regular_idata_sets():
