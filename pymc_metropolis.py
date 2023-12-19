@@ -321,11 +321,11 @@ def plot_trace(idata, filename="trace.pdf", folder_path=graphs_path()):
 
 def plot_all(idata, folder_path=graphs_path()):
     custom_pair_plot(idata, folder_path=folder_path)
-    try:
-        plot_acceptance(idata, folder_path=folder_path)
-        plot_acceptance(idata, log=True, filename="acceptance_plot_log.pdf", folder_path=folder_path)
-    except:
-        print("Unable to plot acceptance")
+    #try:
+    #    plot_acceptance(idata, folder_path=folder_path)
+    #    plot_acceptance(idata, log=True, filename="acceptance_plot_log.pdf", folder_path=folder_path)
+    #except:
+    #    print("Unable to plot acceptance")
     plot_posterior_with_prior(idata, folder_path=folder_path, analytic=False, merge_chains=True)
     plot_posterior_with_prior(idata, folder_path=folder_path, analytic=True, merge_chains=True, filename="posterior_prior_plot_analytic.pdf")
     plot_posterior_with_prior(idata, folder_path=folder_path, analytic=True, merge_chains=True, single_plot=True, filename="posterior_prior_plot_single.pdf")
