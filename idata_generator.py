@@ -19,8 +19,8 @@ def generate_standard_data_sets():
 def generate_offset_data_sets():
     samples = 10000
     tune = 20000
-    prior_mean = np.array([7, 4.2])
-    prior_cov = np.array([[10, -5],[-5, 10]])
+    prior_mean = np.array([7, 5])
+    prior_cov = np.array([[12, -6],[-6, 12]])
     prefix = "offset"
     print("--------------------------------")
     print("Generating offset data sets...")
