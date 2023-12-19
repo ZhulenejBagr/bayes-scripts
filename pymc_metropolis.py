@@ -339,8 +339,8 @@ def generate_idata_sets(
         prefix="regular",
         samples=10000,
         tune=5000):
-    methods = [pm.Metropolis, pm.HamiltonianMC, pm.NUTS, pm.DEMetropolisZ]
-    method_acronyms = ["MH", "HMC", "NUTS", "DEMZ"]
+    methods = [pm.Metropolis, pm.NUTS, pm.DEMetropolisZ]
+    method_acronyms = ["MH", "NUTS", "DEMZ"]
     for method, acronym in zip(methods, method_acronyms):
         idata = sample_regular(step=method, samples=samples, tune=tune, n_cores=4, n_chains=4, prior_mean=prior_mean, prior_cov=prior_cov)
         save_idata_to_file(idata, filename=f"{prefix}.{acronym}.idata")
@@ -356,7 +356,7 @@ def generate_offset_idata_sets():
     return generate_idata_sets(prior_mean=prior_mean, prior_cov=prior_cov, prefix="offset")
 
 def plot_idata_sets(prefix="regular"):
-    methods = ["NUTS", "DEMZ", "HMC", "MH"]
+    methods = ["NUTS", "DEMZ", "MH"]
     idata_paths = [f"{prefix}.{method}.idata" for method in methods]
     for index, path in enumerate(idata_paths):
         idata = read_idata_from_file(filename=path)
