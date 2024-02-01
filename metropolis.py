@@ -108,7 +108,7 @@ def metropolis(
 
 
 if __name__ == "__main__":
-    #idata = metropolis(samples=40000)
-    #save_idata_to_file(idata, filename="custom_MH")
+    idata = metropolis(samples=40000)
+    save_idata_to_file(idata, filename="custom_MH")
     idata = read_idata_from_file(filename="custom_MH")
-    plot_all(idata, folder_path=os.path.join(graphs_path(), "MH_custom"))
+    plot_all(idata, folder_path=os.path.join(graphs_path(), "regular.custom_MH.idata"))
