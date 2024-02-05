@@ -1,6 +1,7 @@
 from glob import glob
 import os
-from pymc_metropolis import plot_all, read_idata_from_file
+from plotting.conductivity_plots import plot_all
+from samplers.idata_tools import read_idata_from_file
 
 if __name__ == "__main__":
     # idata name structure:
