@@ -3,6 +3,7 @@ import numpy.typing as npt
 import pymc as pm
 from scipy.stats import multivariate_normal
 import samplers.blackbox
+from samplers.idata_tools import save_idata_to_file
 from arviz import InferenceData
 import arviz as az
 

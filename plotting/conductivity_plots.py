@@ -3,7 +3,7 @@ from typing import List
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
-from plotting_tools import graphs_path, save_plot
+from plotting.plotting_tools import graphs_path, save_plot
 import numpy as np
 import numpy.typing as npt
 from arviz import InferenceData
