@@ -3,6 +3,7 @@ from scipy.stats import multivariate_normal, norm
 import tinyDA as tda
 import numpy.typing as npt
 from arviz import InferenceData, summary
+from plotting.conductivity_plots import plot_pair_custom
 
 def sample(
         samples: int = 10000,
@@ -19,13 +20,15 @@ def sample(
         noise_mean = 0
         noise_sigma = 2e-4
         noise_distribution = norm(loc=noise_mean, scale=noise_sigma)
+        observed = -1e-3
         @staticmethod
         def loglike(data):
             return CustomLikelihood.noise_distribution.pdf(data)
 
+    observed = -1e-3
     # forward model setup
     def forward_model(params):
-        return 1 / 80  * (3 / np.exp(params[0] + 1 / np.exp(params[1])))
+        return -1 / 80  * (3 / np.exp(params[0]) + 1 / np.exp(params[1]))
 
     # combine into posterior
     posterior = tda.Posterior(prior, CustomLikelihood, forward_model)
@@ -47,4 +50,9 @@ def sample(
 if __name__ == "__main__":
     idata = sample()
     print(summary(idata))
-    print(idata["posterior"])
+    explicit_data = {
+        "U_0": idata["posterior"]["U_0"],
+        "U_1": idata["posterior"]["U_1"],
+        "log_likelihood": idata["sample_stats"]["likelihood"]
+    }
+    plot_pair_custom(idata, explicit_data=explicit_data, plot_prior=False)
