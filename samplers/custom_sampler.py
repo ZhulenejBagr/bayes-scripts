@@ -1,14 +1,12 @@
 from math import pi
-import os
 import numpy as np
 import numpy.random as npr
 from scipy.stats import multivariate_normal
 import arviz as az
-from pymc_metropolis import save_idata_to_file, plot_all, read_idata_from_file, graphs_path
 
 generator = npr.Generator(npr.MT19937())
 
-# Simple metropolis implementation for one variable
+# Simple metropolis-hastings implementation for one variable
 def norm_pdf(value, mean, std):
     return 1 / (std * np.sqrt(2 * pi)) * np.exp(-1 / 2 * np.power((value - mean) / std, 2))
 
@@ -105,10 +103,3 @@ def metropolis(
     idata.extend(prior_idata)
 
     return idata
-
-
-if __name__ == "__main__":
-    idata = metropolis(samples=40000)
-    save_idata_to_file(idata, filename="custom_MH")
-    idata = read_idata_from_file(filename="custom_MH")
-    plot_all(idata, folder_path=os.path.join(graphs_path(), "regular.custom_MH.idata"))

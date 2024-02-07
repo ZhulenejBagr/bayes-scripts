@@ -1,129 +1,20 @@
-import pathlib
 import os
-import pickle
-import pymc as pm
-import numpy as np
-import arviz as az
+from typing import List
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
+from plotting_tools import graphs_path, save_plot
+import numpy as np
+import numpy.typing as npt
+from arviz import InferenceData
+import arviz as az
 from scipy.stats import multivariate_normal, gaussian_kde
-import blackbox
+import samplers.idata_tools as tools
 
-generator = np.random.default_rng(222)
-
-def base_path():
-    return pathlib.Path(__file__).parent.resolve()
-
-def graphs_path():
-    return os.path.join(base_path(), "graphs")
-
-def idata_path():
-    return os.path.join(base_path(), "idata")
-
-def save_plot(filename, folder_path=graphs_path()):
-    # if path doesn't exist, create it
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-
-    plt.savefig(os.path.join(folder_path, filename), dpi=300)
-
-def save_idata_to_file(idata, filename, folder_path=idata_path()):
-    # if path doesn't exist, create it
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-    path = os.path.join(folder_path, filename)
-
-    if os.path.exists(path=path):
-        with open(path, "wb") as file:
-            pickle.dump(obj=idata, file=file)
-    else:
-        with open(path, "ab") as file:
-            pickle.dump(obj=idata, file=file)
-        
-
-def read_idata_from_file(filename, folder_path=idata_path()):
-    path = os.path.join(folder_path, filename)
-    try:
-        with open(path, "rb") as file: 
-            idata = pickle.load(file=file)
-    except:
-        print("Error reading idata file")
-
-    return idata
-
-
-def sample_regular(
-        samples=10000,
-        n_cores=4, n_chains=4,
-        tune=3000,
-        prior_mean=np.array([5, 3]),
-        prior_cov=np.array([[4, -2], [-2, 4]]),
-        step=pm.Metropolis):
-    """
-    Sample using a directly defined model with PYMC functions
-    """
-    observed = -1e-3
-    sigma = 2e-4
-    with pm.Model() as model:
-        # reference: tabulka 3.1 v sekci 3.2
-        # "f_U" v zadání, aka "prior pdf"
-        U = pm.MvNormal('U', prior_mean, prior_cov)
-        # "G" v zadání, aka "observation operator"
-        G_mean = pm.Deterministic('G_mean', -1 / 80 * (3 / np.exp(U[0]) + 1 / np.exp(U[1])))
-        # noise function
-        G = pm.Normal('G', mu=G_mean, sigma=sigma, observed=observed)
-        # run sampling algorithm for posterior
-        idata = pm.sample(draws=samples, tune=tune, step=step(), chains=n_chains, cores=n_cores, random_seed=generator)
-        # add posterior log likelyhood data
-        pm.compute_log_likelihood(idata, extend_inferencedata=True)
-        # add prior samples
-        prior = pm.sample_prior_predictive(samples=samples*n_chains, var_names=["U"], random_seed=generator)
-        idata.extend(prior)
-        # add prior likelyhood
-        prior_np = idata["prior"]["U"].to_numpy().reshape((-1, 2))
-        factor = np.sqrt(np.linalg.det(np.multiply(2 * np.pi, prior_cov)))
-        prior_likelyhood = multivariate_normal(mean=prior_mean, cov=prior_cov).pdf(prior_np)
-        prior_likelyhood = np.divide(prior_likelyhood, factor)
-        idata["prior"]["likelihood"] = prior_likelyhood
-
-        return idata
-
-def sample_blackbox(
-        samples=10000,
-        n_cores=4,
-        n_chains=4,
-        tune=3000,
-        prior_mean=np.array([5, 3]),
-        step=pm.Metropolis,
-        ):
-    """
-    Sample via a blackbox function and pytensor wrapper
-    """
-    observed = -1e-3
-
-    with pm.Model() as model:
-        pm.CustomDist("U", prior_mean, logp=blackbox.log_probability, random=blackbox.sample, ndim_supp=1, ndims_params=(1,))
-        # run sampling algorithm for posterior
-        idata = pm.sample(draws=samples, tune=tune, step=step(), chains=n_chains, cores=n_cores, random_seed=generator, initvals={"U": prior_mean})
-        # add posterior log likelyhood data
-        pm.compute_log_likelihood(idata, extend_inferencedata=True)
-        # add prior samples
-        #prior = pm.sample_prior_predictive(samples=samples*n_chains, var_names=["U"], random_seed=generator)
-        #idata.extend(prior)
-        # add prior likelyhood
-        #prior_np = idata["prior"]["U"].to_numpy().reshape((-1, 2))
-        #factor = np.sqrt(np.linalg.det(np.multiply(2 * np.pi, prior_cov)))
-        #prior_likelyhood = multivariate_normal(mean=prior_mean, cov=prior_cov).pdf(prior_np)
-        #prior_likelyhood = np.divide(prior_likelyhood, factor)
-        #idata["prior"]["likelihood"] = prior_likelyhood
-
-        return idata
-
-
-
-
-def custom_pair_plot(idata, filename="posterior_prior_pair_plot.png", folder_path=graphs_path()):
+def plot_pair_custom(
+        idata: InferenceData,
+        filename: str = "posterior_prior_pair_plot.png",
+        folder_path: str = graphs_path()) -> None:
     # get values from inference data
     x_data = idata["posterior"]["U"][:, :, 0]
     y_data = idata["posterior"]["U"][:, :, 1]
@@ -169,8 +60,8 @@ def custom_pair_plot(idata, filename="posterior_prior_pair_plot.png", folder_pat
 
     # plot posterior
     ax[1].scatter(
-        x_data, 
-        y_data, 
+        x_data,
+        y_data,
         c=log_likelihood,
         cmap=posterior_colormap,
         label="Posterior",
@@ -193,7 +84,13 @@ def custom_pair_plot(idata, filename="posterior_prior_pair_plot.png", folder_pat
     # close figure
     plt.close()
 
-def plot_acceptance(idata, target_acceptance=0.8, log=False, folder_path=graphs_path(), filename="acceptance_plot.pdf"):
+def plot_acceptance(
+        idata: InferenceData,
+        target_acceptance: float = 0.8,
+        log: bool = False,
+        folder_path: str = graphs_path(),
+        filename: str = "acceptance_plot.pdf") -> None:
+    
     acceptance = idata["sample_stats"]["accept"].to_numpy()
     n_chains = acceptance.shape[0]
     n_samples = acceptance.shape[1]
@@ -214,14 +111,14 @@ def plot_acceptance(idata, target_acceptance=0.8, log=False, folder_path=graphs_
     plt.close()
 
 def plot_posterior_with_prior(
-        idata,
-        filename="posterior_prior_plot.pdf",
-        folder_path=graphs_path(),
-        merge_chains=False,
-        single_plot=False,
-        analytic=True,
-        analytic_mean=np.array([5, 3]),
-        analytic_cov=np.array([[4, -2], [-2, 4]])):
+        idata: InferenceData,
+        filename: str = "posterior_prior_plot.pdf",
+        folder_path: str = graphs_path(),
+        merge_chains: bool = False,
+        single_plot: bool = False,
+        analytic: bool = True,
+        analytic_mean: npt.NDArray = np.array([5, 3]),
+        analytic_cov: npt.NDArray = np.array([[4, -2], [-2, 4]])) -> None:
     posterior_data = idata["posterior"]["U"].to_numpy()
     prior_data = idata["prior"]["U"].to_numpy()
 
@@ -295,32 +192,45 @@ def plot_posterior_with_prior(
         else:
             ax.legend()
 
-    #fig.legend(ncol=2, loc="upper left")
+    # save plot
     save_plot(folder_path=folder_path, filename=filename)
 
     # close figure
     plt.close()
 
-def plot_autocorr(idata, filename="autocorr.pdf", folder_path=graphs_path()):
+def plot_autocorr(
+        idata: InferenceData,
+        filename: str = "autocorr.pdf",
+        folder_path: str = graphs_path()) -> None:
     az.plot_autocorr(idata)
     save_plot(filename=filename, folder_path=folder_path)
     # close figure
     plt.close()
 
-def plot_rank(idata, filename="rank.pdf", folder_path=graphs_path()):
+def plot_rank(
+        idata: InferenceData,
+        filename: str = "rank.pdf",
+        folder_path: str = graphs_path()) -> None:
     az.plot_rank(idata)
     save_plot(filename=filename, folder_path=folder_path)
     # close figure
     plt.close()
 
-def plot_trace(idata, filename="trace.pdf", folder_path=graphs_path()):
+def plot_trace(
+        idata: InferenceData,
+        filename: str = "trace.pdf",
+        folder_path: str = graphs_path()) -> None:
+    
     az.plot_trace(idata, figsize=[16, 9])
     save_plot(filename=filename, folder_path=folder_path)
     # close figure
     plt.close()
 
-def plot_all(idata, folder_path=graphs_path()):
-    custom_pair_plot(idata, folder_path=folder_path)
+def plot_all(
+        idata: InferenceData,
+        folder_path: str = graphs_path()) -> None:
+
+    plot_pair_custom(idata, folder_path=folder_path)
     #try:
     #    plot_acceptance(idata, folder_path=folder_path)
     #    plot_acceptance(idata, log=True, filename="acceptance_plot_log.pdf", folder_path=folder_path)
@@ -333,46 +243,15 @@ def plot_all(idata, folder_path=graphs_path()):
     plot_rank(idata, folder_path=folder_path)
     plot_trace(idata, folder_path=folder_path)
 
-def generate_idata_sets(
-        prior_mean=np.array([5, 3]),
-        prior_cov=np.array([[4, -2], [-2, 4]]),
-        prefix="regular",
-        samples=10000,
-        tune=5000):
-    methods = [pm.Metropolis, pm.NUTS, pm.DEMetropolisZ]
-    method_acronyms = ["MH", "NUTS", "DEMZ"]
-    for method, acronym in zip(methods, method_acronyms):
-        idata = sample_regular(step=method, samples=samples, tune=tune, n_cores=4, n_chains=4, prior_mean=prior_mean, prior_cov=prior_cov)
-        print(az.summary(idata), "\n\n")
-        save_idata_to_file(idata, filename=f"{prefix}.{acronym}.idata")
-
-def generate_regular_idata_sets():
-    print("Generating standard data sets...")
-    prior_mean = np.array([5, 3])
-    prior_cov = np.array([[4, -2], [-2, 4]])
-    return generate_idata_sets(prior_mean=prior_mean, prior_cov=prior_cov)
-
-def generate_offset_idata_sets():
-    prior_mean = np.array([8, 6])
-    prior_cov = np.array([[16, -2], [-2, 16]])
-    tune = 10000
-    return generate_idata_sets(prior_mean=prior_mean, prior_cov=prior_cov, prefix="offset", tune=tune)
-
-def plot_idata_sets(prefix="regular"):
-    methods = ["NUTS", "DEMZ", "MH"]
-    idata_paths = [f"{prefix}.{method}.idata" for method in methods]
-    for index, path in enumerate(idata_paths):
-        idata = read_idata_from_file(filename=path)
-        plot_all(idata, folder_path=os.path.join(graphs_path(), prefix, methods[index]))
-
 def plot_posterior_with_prior_compare(
-        idata_list,
-        filename="posterior_prior_plot_compare.pdf",
-        folder_path=graphs_path(),
-        merge_chains=False,
-        analytic=True,
-        analytic_mean=np.array([5, 3]),
-        analytic_cov=np.array([[4, -2], [-2, 4]])):
+        idata_list: List[InferenceData],
+        filename: str = "posterior_prior_plot_compare.pdf",
+        folder_path: str = graphs_path(),
+        merge_chains: bool = False,
+        analytic: bool = True,
+        analytic_mean: npt.NDArray = np.array([5, 3]),
+        analytic_cov: npt.NDArray = np.array([[4, -2], [-2, 4]])) -> None:
+
     fig, ax = plt.subplots(2, 2)
     names = ["MH", "Custom MH", "DEMZ", "NUTS"]
     fig.set_figwidth(16)
@@ -432,12 +311,10 @@ def plot_posterior_with_prior_compare(
     # close figure
     plt.close()
 
-def compare_posterior_with_prior():
-    idata_names = ["MH", "custom_MH", "DEMZ", "NUTS"]
-    idata_list = [read_idata_from_file(f"regular.{name}.idata") for name in idata_names]
-    plot_posterior_with_prior_compare(idata_list, merge_chains=True, analytic=True)
-
-def custom_pair_plot_compare(idata_list, filename="posterior_prior_pair_plot_compare.pdf", folder_path=graphs_path()):
+def plot_pair_custom_compare(
+        idata_list: List[InferenceData], 
+        filename: str = "posterior_prior_pair_plot_compare.pdf", 
+        folder_path: str = graphs_path()) -> None:
     wrl = [1, 1, 14, 1, 3, 1, 1, 14, 1]
     fig, ax = plt.subplots(nrows=2, ncols=9, gridspec_kw={'width_ratios': wrl})
     fig.set_figwidth(16)
@@ -509,36 +386,30 @@ def custom_pair_plot_compare(idata_list, filename="posterior_prior_pair_plot_com
         fig.colorbar(prior_sm, label="Prior PDF", cax=right_ax)
         middle_ax.legend()
 
-
-    ax[0][4].axis("off")
-    ax[1][4].axis("off")
-    ax[0][1].axis("off")
-    ax[1][1].axis("off")
-    ax[0][6].axis("off")
-    ax[1][6].axis("off")
+    # hide plots to avoid clumping
+    for x in [0, 1]:
+        for y in [0, 1, 6]:
+            ax[x, y].axis("off")
 
     # save plot to file
     save_plot(folder_path=folder_path, filename=filename)
 
     # close figure
     plt.close()
-def compare_pair_plot():
+
+def plot_idata_sets(prefix: str = "regular") -> None:
+    methods = ["NUTS", "DEMZ", "MH"]
+    idata_paths = [f"{prefix}.{method}.idata" for method in methods]
+    for index, path in enumerate(idata_paths):
+        idata = tools.read_idata_from_file(filename=path)
+        plot_all(idata, folder_path=os.path.join(graphs_path(), prefix, methods[index]))
+
+def compare_posterior_with_prior() -> None:
     idata_names = ["MH", "custom_MH", "DEMZ", "NUTS"]
-    idata_list = [read_idata_from_file(f"regular.{name}.idata") for name in idata_names]
-    custom_pair_plot_compare(idata_list)
-if __name__ == "__main__":
-    #generate_regular_idata_sets()
-    #generate_offset_idata_sets()
-    idata = sample_blackbox()
-    print(az.summary(idata))
-    #save_idata_to_file(idata, filename="blackbox.idata")
-    #idata = read_idata_from_file("blackbox.idata")
-    #compare_posterior_with_prior()
-    compare_pair_plot()
-    #print(idata)
-    #print(idata["posterior"])
-    #print(idata["sample_stats"])
-    #az.plot_trace(idata, show=True)
-    #plot_all(idata)
-    #plot_idata_sets()
-    #plot_idata_sets(prefix="offset")
+    idata_list = [tools.read_idata_from_file(f"regular.{name}.idata") for name in idata_names]
+    plot_posterior_with_prior_compare(idata_list, merge_chains=True, analytic=True)
+
+def compare_pair_plot_custom() -> None:
+    idata_names = ["MH", "custom_MH", "DEMZ", "NUTS"]
+    idata_list = [tools.read_idata_from_file(f"regular.{name}.idata") for name in idata_names]
+    plot_pair_custom_compare(idata_list)
