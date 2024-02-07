@@ -7,4 +7,11 @@ docker exec -it flow123 /bin/bash
 # base image
 docker run --rm -it -v ${pwd}\..:/mnt flow123d/endorse_ci:a785dd
 # pak v containeru
+# vytvoří venv, vytvoří pymc idata i ploty
 /mnt/docker/run_script.sh
+# vytvoří venv
+sed -i -e 's/\r$//' /mnt/docker/setup_env.sh #(pokud nejde zanout setup_env.sh)
+/mnt/docker/setup_env.sh
+# vytvoří pymc idata a grafy
+sed -i -e 's/\r$//' #/mnt/scripts/generate_and_plot.sh
+/mnt/doker/generate_and_plot.sh
