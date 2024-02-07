@@ -14,20 +14,29 @@ import samplers.idata_tools as tools
 def plot_pair_custom(
         idata: InferenceData,
         filename: str = "posterior_prior_pair_plot.png",
-        folder_path: str = graphs_path()) -> None:
+        folder_path: str = graphs_path(),
+        explicit_data: dict = None,
+        plot_prior: bool = True) -> None:
+
     # get values from inference data
-    x_data = idata["posterior"]["U"][:, :, 0]
-    y_data = idata["posterior"]["U"][:, :, 1]
-    log_likelihood = idata["log_likelihood"]["G"]
-    prior = idata["prior"]["U"]
-    prior_likelihood = idata["prior"]["likelihood"]
+    # if explicit data is available, use it
+    if explicit_data is not None:
+        x_data = explicit_data["U_0"] if "U_0" in explicit_data else idata["posterior"]["U"][:, :, 0]
+        y_data = explicit_data["U_1"] if "U_1" in explicit_data else idata["posterior"]["U"][:, :, 1]
+        log_likelihood = explicit_data["log_likelihood"] if "log_likelihood" in explicit_data else idata["log_likelihood"]["G"]
+    else:
+        x_data = idata["posterior"]["U"][:, :, 0]
+        y_data = idata["posterior"]["U"][:, :, 1]
+        log_likelihood = idata["log_likelihood"]["G"]
+
+    if plot_prior:
+        prior = idata["prior"]["U"]
+        prior_likelihood = idata["prior"]["likelihood"]
+        x_prior = prior[:, :, 0]
+        y_prior = prior[:, :, 1]
 
     # change to regular likelyhood
     #log_likelihood = np.exp(log_likelihood)
-
-    # prior data
-    x_prior = prior[:, :, 0]
-    y_prior = prior[:, :, 1]
 
     # init plot figure
     wrl = [1, 14, 1]
@@ -41,22 +50,23 @@ def plot_pair_custom(
     posterior_sm = ScalarMappable(cmap=posterior_colormap, norm=posterior_norm)
     posterior_sm.set_array([])
 
-    # prior colormap
-    prior_colormap = plt.get_cmap('Reds')
-    prior_norm = Normalize(vmin=np.min(prior_likelihood), vmax=np.max(prior_likelihood))
-    prior_sm = ScalarMappable(cmap=prior_colormap, norm=prior_norm)
-    prior_sm.set_array([])
+    if plot_prior:
+        # prior colormap
+        prior_colormap = plt.get_cmap('Reds')
+        prior_norm = Normalize(vmin=np.min(prior_likelihood), vmax=np.max(prior_likelihood))
+        prior_sm = ScalarMappable(cmap=prior_colormap, norm=prior_norm)
+        prior_sm.set_array([])
 
-    # plot prior
-    ax[1].scatter(
-        x_prior,
-        y_prior,
-        c=prior_likelihood,
-        cmap=prior_colormap,
-        label="Prior",
-        s=6,
-        alpha=0.15
-    )
+        # plot prior
+        ax[1].scatter(
+            x_prior,
+            y_prior,
+            c=prior_likelihood,
+            cmap=prior_colormap,
+            label="Prior",
+            s=6,
+            alpha=0.15
+        )
 
     # plot posterior
     ax[1].scatter(
@@ -76,7 +86,8 @@ def plot_pair_custom(
     # add colorbars and legend
     plt.legend('upper left')
     fig.colorbar(posterior_sm, label="Posterior PDF", cax=ax[0])
-    fig.colorbar(prior_sm, label="Prior PDF", cax=ax[2])
+    if plot_prior:
+        fig.colorbar(prior_sm, label="Prior PDF", cax=ax[2])
 
     # save plot to file
     save_plot(folder_path=folder_path, filename=filename)
