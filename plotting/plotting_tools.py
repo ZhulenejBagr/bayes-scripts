@@ -17,3 +17,4 @@ def save_plot(
         os.makedirs(folder_path)
 
     plt.savefig(os.path.join(folder_path, filename), dpi=300)
+    print(f"Succesfully saved plot {filename} at {folder_path}.")
