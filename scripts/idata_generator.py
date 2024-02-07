@@ -1,5 +1,5 @@
 import numpy as np
-from pymc_metropolis import generate_idata_sets
+from samplers.pymc_sampler import generate_idata_sets
 # idata is saved to folder /idata relative to this script's directory
 # all heavy lifting is done by the generate_idata_sets method
 # 
@@ -27,8 +27,6 @@ def generate_offset_data_sets():
     print("--------------------------------")
     print("\n")
     generate_idata_sets(samples=samples, tune=tune, prior_mean=prior_mean, prior_cov=prior_cov, prefix=prefix)
-
-
 
 
 if __name__ == "__main__":
