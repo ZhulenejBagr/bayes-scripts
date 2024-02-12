@@ -21,20 +21,27 @@ def sample(
         noise_sigma = 2e-4
         noise_distribution = norm(loc=noise_mean, scale=noise_sigma)
         observed = -1e-3
+        params = [0, 0]
         @staticmethod
         def loglike(data):
-            return CustomLikelihood.noise_distribution.pdf(data)
+            obs_operator = CustomLikelihood.noise_distribution.logpdf(data - CustomLikelihood.observed)
+            prior_likelihood = prior.logpdf(CustomLikelihood.params)
+            likelihood = obs_operator + prior_likelihood
+            return likelihood
 
-    observed = -1e-3
-    # forward model setup
-    def forward_model(params):
-        return -1 / 80  * (3 / np.exp(params[0]) + 1 / np.exp(params[1]))
+        observed = -1e-3
+        # forward model setup
+        @staticmethod
+        def forward_model(params):
+            CustomLikelihood.params = params
+            return -1 / 80  * (3 / np.exp(params[0]) + 1 / np.exp(params[1]))
 
     # combine into posterior
-    posterior = tda.Posterior(prior, CustomLikelihood, forward_model)
+    posterior = tda.Posterior(prior, CustomLikelihood, CustomLikelihood.forward_model)
 
     # proposal
-    proposal = tda.GaussianRandomWalk(prior_cov, scaling=0.5, adaptive=False)
+    #proposal = tda.GaussianRandomWalk(np.eye(2, 2), scaling=1, adaptive=False)
+    proposal = tda.IndependenceSampler(prior)
 
     # sample distribution
     total_samples = tune + samples
