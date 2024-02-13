@@ -41,7 +41,7 @@ setuptools.setup(
     # according to setuptols documentation
     # the including 'endorse.flow123d_inputs' should not be neccessary,
     # however packege_data 'endorse.flow123d_inputs' doesn't work without it
-    packages=['bp_simunek', 'bp_simunek.plotting', 'bp_simunek.samplers', 'bp_simunek.scripts'],
+    packages=['bp_simunek', 'bp_simunek.common', 'bp_simunek.plotting', 'bp_simunek.samplers', 'bp_simunek.scripts'],
     package_dir={
         "": "src"
     },

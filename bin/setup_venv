@@ -9,6 +9,9 @@ echo "Creating python virtual environment."
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 SRC_ROOT="$SCRIPTPATH/.."
 
+# force using pytest from venv - otherwise it uses system packages
+sudo pip3 uninstall pytest
+
 cd ${SRC_ROOT}
 rm -r venv
 #virtualenv venv
@@ -17,7 +20,7 @@ python3 -m venv --system-site-packages venv
 venv_pip=${SRC_ROOT}/venv/bin/pip
 #source venv/bin/activate
 
-#$venv_pip install -r $SRC_ROOT/requirements.txt
+$venv_pip install -r $SRC_ROOT/requirements.txt
 
 #$venv_pip install -e submodules/bgem
 # TODO simplify dependency and submodules
