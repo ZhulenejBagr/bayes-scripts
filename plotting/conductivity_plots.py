@@ -323,8 +323,8 @@ def plot_posterior_with_prior_compare(
     plt.close()
 
 def plot_pair_custom_compare(
-        idata_list: List[InferenceData], 
-        filename: str = "posterior_prior_pair_plot_compare.pdf", 
+        idata_list: List[InferenceData],
+        filename: str = "posterior_prior_pair_plot_compare.pdf",
         folder_path: str = graphs_path()) -> None:
     wrl = [1, 2, 14, 1, 3, 1, 2, 14, 1]
     fig, ax = plt.subplots(nrows=2, ncols=9, gridspec_kw={'width_ratios': wrl})
@@ -393,8 +393,9 @@ def plot_pair_custom_compare(
         middle_ax.set_ylim([-7.5, 12.5])
 
         # add colorbars and legend
-        fig.colorbar(posterior_sm, label="Posterior PDF", cax=left_ax)
-        fig.colorbar(prior_sm, label="Prior PDF", cax=right_ax)
+        fig.colorbar(posterior_sm, label="Posterior PDF", cax=left_ax, format='%.0e')
+
+        fig.colorbar(prior_sm, label="Prior PDF", cax=right_ax, format='%.0e')
         middle_ax.legend()
 
     # hide plots to avoid clumping
