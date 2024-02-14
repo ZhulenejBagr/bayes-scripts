@@ -95,7 +95,7 @@ def metropolis(
     idata.extend(likelihood_idata)
 
     # add prior data
-    prior_samples, prior_likelihood = sample_prior(samples)
+    prior_samples, prior_likelihood = sample_prior(samples, mean=prior_mean, cov=prior_sigma)
     prior_samples = prior_samples.reshape(1, -1, 2)
     prior_likelihood = prior_likelihood.reshape(1, -1)
     prior_idata = az.convert_to_inference_data({
