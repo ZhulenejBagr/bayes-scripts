@@ -399,8 +399,12 @@ def plot_pair_custom_compare(
 
     # hide plots to avoid clumping
     for x in [0, 1]:
-        for y in [0, 1, 6]:
+        for y in [1, 4, 6]:
             ax[x, y].axis("off")
+    # fix fontsize of colorbars
+    for x in [0, 1]:
+        for y in [0, 5]:
+            ax[x, y].tick_params(labelsize=8)
 
     # save plot to file
     save_plot(folder_path=folder_path, filename=filename)
