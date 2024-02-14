@@ -326,7 +326,7 @@ def plot_pair_custom_compare(
         idata_list: List[InferenceData], 
         filename: str = "posterior_prior_pair_plot_compare.pdf", 
         folder_path: str = graphs_path()) -> None:
-    wrl = [1, 1, 14, 1, 3, 1, 1, 14, 1]
+    wrl = [1, 2, 14, 1, 3, 1, 2, 14, 1]
     fig, ax = plt.subplots(nrows=2, ncols=9, gridspec_kw={'width_ratios': wrl})
     fig.set_figwidth(16)
     fig.set_figheight(9)
