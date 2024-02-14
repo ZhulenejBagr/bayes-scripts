@@ -280,6 +280,7 @@ def plot_posterior_with_prior_compare(
         prior_colors = ["darkblue", "darkred"]
 
         current_ax.set_xlim([-7.5, 15])
+        current_ax.set_ylim([0, 1])
 
         fig.suptitle("Porovnání metod vzorkování")
 
