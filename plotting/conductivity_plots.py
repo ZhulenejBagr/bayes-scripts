@@ -415,12 +415,18 @@ def plot_idata_sets(prefix: str = "regular") -> None:
         idata = tools.read_idata_from_file(filename=path)
         plot_all(idata, folder_path=os.path.join(graphs_path(), prefix, methods[index]))
 
-def compare_posterior_with_prior() -> None:
+def compare_posterior_with_prior(
+        filename: str = "posterior_prior_plot_compare.pdf",
+        analytic: bool = True,
+        prefix: str = "standard") -> None:
     idata_names = ["MH", "custom_MH", "DEMZ", "NUTS"]
-    idata_list = [tools.read_idata_from_file(f"regular.{name}.idata") for name in idata_names]
-    plot_posterior_with_prior_compare(idata_list, merge_chains=True, analytic=True)
+    idata_list = [tools.read_idata_from_file(f"{prefix}.{name}.idata") for name in idata_names]
+    plot_posterior_with_prior_compare(idata_list, merge_chains=True, analytic=analytic, filename=filename)
 
-def compare_pair_plot_custom() -> None:
+def compare_pair_plot_custom(
+        filename: str = "posterior_prior_pair_plot_compare.pdf",
+        prefix: str = "standard") -> None:
     idata_names = ["MH", "custom_MH", "DEMZ", "NUTS"]
-    idata_list = [tools.read_idata_from_file(f"regular.{name}.idata") for name in idata_names]
-    plot_pair_custom_compare(idata_list)
+    idata_list = [tools.read_idata_from_file(f"{prefix}.{name}.idata") for name in idata_names]
+    plot_pair_custom_compare(idata_list, filename=filename)
+
