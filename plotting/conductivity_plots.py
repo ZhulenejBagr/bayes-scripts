@@ -407,6 +407,7 @@ def plot_pair_custom_compare(
         for y in [0, 5]:
             ax[x, y].tick_params(labelsize=8)
 
+
     # save plot to file
     save_plot(folder_path=folder_path, filename=filename)
 
@@ -435,3 +436,7 @@ def compare_pair_plot_custom(
     idata_list = [tools.read_idata_from_file(f"{prefix}.{name}.idata") for name in idata_names]
     plot_pair_custom_compare(idata_list, filename=filename)
 
+if __name__ == "__main__":
+    compare_pair_plot_custom(filename="posterior_prior_pair_plot_compare_offset.pdf", prefix="offset")
+    compare_pair_plot_custom(filename="posterior_prior_pair_plot_compare_offset.png", prefix="offset")
+    compare_posterior_with_prior(filename="posterior_with_prior_compare_offset.pdf", prefix="offset")
