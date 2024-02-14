@@ -8,7 +8,7 @@ import numpy as np
 import numpy.typing as npt
 from arviz import InferenceData
 import arviz as az
-from scipy.stats import multivariate_normal, gaussian_kde
+from scipy.stats import multivariate_normal, gaussian_kde, norm
 import samplers.idata_tools as tools
 
 def plot_pair_custom(
@@ -304,15 +304,14 @@ def plot_posterior_with_prior_compare(
                 linspace0 = np.linspace(-5, 15, 250)
                 linspace1 = np.linspace(-7.5, 12.5, 250)
                 linspaces = [linspace0, linspace1]
-                x, y = np.meshgrid(linspace0, linspace1)
-                grid = np.dstack((x, y))
-                pdf_values = multivariate_normal(mean=analytic_mean, cov=analytic_cov).pdf(grid)
-                density = np.sum(pdf_values, axis=1-i)
-                # normalize
-                density = np.divide(density, 12.5)
-                current_ax.plot(linspaces[i], density, color=prior_colors[i], label=f"Prior[{i}]")
+                densities = [
+                    norm(loc=analytic_mean[0], scale=np.sqrt(analytic_cov[0, 0])).pdf(linspaces[0]),
+                    norm(loc=analytic_mean[1], scale=np.sqrt(analytic_cov[1, 1])).pdf(linspaces[1])
+                ]
+                current_ax.plot(linspaces[i], densities[i], color=prior_colors[i], label=f"Prior[{i}]")
             
             if not analytic:
+                density = gaussian_kde(prior_data[:, :, i])
                 current_ax.plot(linspace, density(linspace), color=prior_colors[i], label=f"Prior[{i}]")
         
             current_ax.legend()
