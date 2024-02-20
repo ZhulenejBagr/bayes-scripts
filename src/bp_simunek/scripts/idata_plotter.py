@@ -1,7 +1,7 @@
 from glob import glob
 import os
-from plotting.conductivity_plots import plot_all
-from samplers.idata_tools import read_idata_from_file
+from src.bp_simunek.plotting.conductivity_plots import plot_all
+from src.bp_simunek.samplers.idata_tools import read_idata_from_file
 
 if __name__ == "__main__":
     # idata name structure:
