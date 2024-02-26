@@ -27,7 +27,7 @@ ABS_FLOW_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/.. && pwd )"
 REL_FLOW_DIR=$(realpath --relative-to=$(pwd) $ABS_FLOW_DIR)
 
 image_name=bp_simunek
-image_tag=17429d
+image_tag=09da55
 
 function get_base_image() {
     local image=flow123d/$image_name:$image_tag

@@ -124,14 +124,6 @@ class Flow123dSimulation:
             # return -1, None  # tag, value_list
         print("Running Flow123d - HM...finished")
 
-        if self._config["make_plots"]:
-            try:
-                self.observe_time_plot(config_dict)
-            except:
-                logging.error("Making plot of sample results failed:")
-                traceback.print_exc()
-                return -2, None
-
         logging.info("Finished computation")
 
         # collected_values = self.collect_results(config_dict)
@@ -162,32 +154,19 @@ class Flow123dSimulation:
     #     if max > maximum:
     #         raise Exception("Data out of given range [max].")
 
-    # def collect_results(self, config_dict):
-    #     pressure_points2collect = config_dict["surrDAMH_parameters"]["observe_points"]
-    #     cond_points2collect = config_dict["surrDAMH_parameters"]["conductivity_observe_points"]
-    #
-    #     values = np.empty((0,))
-    #
-    #     # the times defined in input
-    #     times = np.array(generate_time_axis(config_dict))
-    #     with open(os.path.join(self.sample_output_dir, "flow_observe.yaml"), "r") as f:
-    #         loaded_yaml = yaml.load(f, yaml.CSafeLoader)
-    #
-    #         vals = self.get_from_observe(loaded_yaml, pressure_points2collect, 'pressure_p0', times)
-    #         values = np.concatenate((values, vals), axis=None)
-    #
-    #         vals = self.get_from_observe(loaded_yaml, cond_points2collect, 'conductivity', times[-1])
-    #         vals = np.log10(vals)  # consider log10!
-    #         values = np.concatenate((values, vals), axis=None)
-    #
-    #     if config_dict["clean_sample_dir"]:
-    #         shutil.rmtree(self.sample_dir)
-    #
-    #     # flatten to format: [Point0_all_all_times, Point1_all_all_times, Point2_all_all_times, ...]
-    #     res = values.flatten()
-    #     return res
-
     def collect_results(self, config_dict, fo: common.FlowOutput):
+        data = None
+        if config_dict["collect_results"]["collect_vtk"]:
+            data = self.collect_results_vtk(config_dict, fo)
+        if config_dict["collect_results"]["collect_observe"]:
+            data = self.collect_results_observe(config_dict, fo)
+
+        if config_dict["clean_sample_dir"]:
+            shutil.rmtree(self.sample_dir)
+
+        return data
+
+    def collect_results_vtk(self, config_dict, fo: common.FlowOutput):
         # Load the PVD file
         # pvd_file_path = os.path.join(self.sample_output_dir, "flow.pvd")
         field_name = "pressure_p0"
@@ -204,10 +183,32 @@ class Flow123dSimulation:
         sample_data = np.stack(field_data_list)
         sample_data = sample_data.reshape((1, *sample_data.shape))  # axis 0 - sample
 
-        if config_dict["clean_sample_dir"]:
-            shutil.rmtree(self.sample_dir)
-
         return sample_data
+
+    def collect_results_observe(self, config_dict, fo: common.FlowOutput):
+        pressure_points2collect = config_dict["observe_points"]
+        cond_points2collect = config_dict["conductivity_observe_points"]
+
+        values = np.empty((0,))
+
+        # the times defined in input
+        times = np.array(generate_time_axis(config_dict))
+        with open(fo.hydro.observe_file.path, "r") as f:
+            loaded_yaml = yaml.safe_load(f)
+
+            vals = self.get_from_observe(loaded_yaml, pressure_points2collect, 'pressure_p0', times)
+            values = np.concatenate((values, vals), axis=None)
+
+            vals = self.get_from_observe(loaded_yaml, cond_points2collect, 'conductivity', times[-1])
+            vals = np.log10(vals)  # consider log10!
+            values = np.concatenate((values, vals), axis=None)
+
+        if self._config["make_plots"]:
+            self.observe_time_plot(config_dict, fo)
+        # flatten to format: [Point0_all_all_times, Point1_all_all_times, Point2_all_all_times, ...]
+        res = values.flatten()
+        return res
+
 
     def get_from_observe(self, observe_dict, point_names, field_name, select_times=None):
         points = observe_dict['points']
@@ -228,7 +229,7 @@ class Flow123dSimulation:
 
         if select_times is not None:
             # check that observe data are computed at all times of defined time axis
-            all_times_computed = np.alltrue(np.isin(select_times, obs_times))
+            all_times_computed = np.all(np.isin(select_times, obs_times))
             if not all_times_computed:
                 raise Exception("Observe data not computed at all times as defined by input!")
             # skip the times not specified in input
@@ -399,12 +400,12 @@ class Flow123dSimulation:
     #     fig.tight_layout()  # otherwise the right y-label is slightly clipped
     #     plt.show()
 
-    def observe_time_plot(self, config_dict):
+    def observe_time_plot(self, config_dict, fo: common.FlowOutput):
 
-        pressure_points2collect = config_dict["surrDAMH_parameters"]["observe_points"]
+        pressure_points2collect = config_dict["observe_points"]
 
-        with open(os.path.join(self.sample_output_dir, "flow_observe.yaml"), "r") as f:
-            loaded_yaml = yaml.load(f, yaml.CSafeLoader)
+        with open(fo.hydro.observe_file.path, "r") as f:
+            loaded_yaml = yaml.safe_load(f)
             data = loaded_yaml['data']
             times = np.array([d["time"] for d in data]).transpose()
 

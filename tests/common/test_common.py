@@ -34,6 +34,7 @@ def test_call_flow():
     (venv) rel 4.0.3> cd tests/common
     (venv) rel 4.0.3> pytest test_common.py
     """
+    os.chdir(script_dir)
     flow_executable = [
         "/opt/flow123d/bin/flow123d",
         ### this is for installed Flow123d package or individual build
@@ -121,6 +122,32 @@ def test_flow_simulation2():
         # sample_data shape: (1, n_times, n_elements)
         assert res >= 0
         assert len(times) == sample_data.shape[1]
+
+
+def test_flow_simulation3():
+    os.chdir(script_dir)
+    workdir = Path("test_workdir3").absolute()
+    solver_id = 42
+    wrap = Wrapper(solver_id, workdir)
+
+    params_in = np.array([
+        [0, 31041937523.11239, 41023533.68961888, 18558265.240542404, 15795614.673716737, 9.420922909068678e-21,
+            49.76537298111819, 1.0078720643166661e-16, 6.637653325266047, -0.0625, -0.6875],
+        [1, 53289723492.17694, 41023533.68961888, 18558265.240542404, 15795614.673716737, 9.420922909068678e-21,
+            49.76537298111819, 1.0078720643166661e-16, 6.637653325266047, -0.0625, -0.6875]
+    ])
+
+    for pars in params_in:
+        idx = int(pars[0])
+        wrap.set_parameters(data_par=pars[1:])
+        res, sample_data = wrap.get_observations()
+
+        print("Flow123d res: ", res, sample_data)
+
+        times = generate_time_axis(wrap.sim._config)
+        # sample_data shape: (1, n_times, n_elements)
+        assert res >= 0
+        # assert len(times) == sample_data.shape[1]
 
 
 def test_sample_from_population():

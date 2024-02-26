@@ -1,7 +1,7 @@
 mesh_only: False
-make_plots: False
+make_plots: True
 # if True, it removes sample dir right after the sample is collected
-clean_sample_dir: True
+clean_sample_dir: False
 
 parameters:
 #  - name: storativity
@@ -46,26 +46,37 @@ parameters:
 
 # types of collected data
 collect_results:
-  collect_vtk: True
-  collect_observe: False
+  collect_vtk: False
+  collect_observe: True
 
 # FULL time axis
 start_time: &start_time 0
-end_time: &end_time 32
-bored_time: &bored_time 16
+end_time: &end_time 365
+bored_time: &bored_time 17
 output_times: &output_times
-  - {begin: *start_time, step: 8, end: *bored_time}
-  #- {begin: *bored_time, step: 1, end: 100}
-  - {begin: *bored_time, step: 4, end: *end_time}
+  - {begin: *start_time, step: 10, end: *bored_time}
+  - {begin: *bored_time, step: 10, end: 100}
+  - {begin: 100, step: 20, end: *end_time}
 
 geometry:
   # base of the mesh file name
-  mesh_name: tunnel2d_fine
+  mesh_name: tunnel_mesh_cut_healed
+
+observe_points:
+  #- V1 # HGT1-5
+  #- V2 # HGT1-4
+  - H1 # HGT2-4
+  #- H2 # HGT2-3
+conductivity_observe_points:
+  - V01_cond
+  - V02_cond
+  - H01_cond
+  - H02_cond
 
 # parameters substituted into the HM model template
 hm_params:
     mesh: tunnel_mesh.msh # healed mesh is used at the end (programmatically replaced)
-    in_file: C03_hm
+    in_file: A04_hm
 
     output_times: *output_times
     start_time: *start_time

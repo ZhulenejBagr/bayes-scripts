@@ -1,4 +1,4 @@
-FROM flow123d/endorse_ci:14a6cb
+FROM flow123d/endorse_ci:e67f54
 
 COPY requirements.txt /tmp/requirements.txt
 # COPY sample_script.py /root/sample_script.py
