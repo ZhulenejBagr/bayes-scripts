@@ -11,6 +11,11 @@ parameters:
     type: lognorm
     bounds: [ -21, 1.0 ]  # lognorm: logmean, logstd
 
+# types of collected data
+collect_results:
+  collect_vtk: True
+  collect_observe: False
+
 geometry:
   # base of the mesh file name
   mesh_name: square_1x1_xy
@@ -33,10 +38,11 @@ local:
   flow_executable:
     ### this is the simplest case when using inside docker (or singularity) image
     # running with empty environment (env -i); keep flow123d paths:
-    - env
-    - -i
+#    - env
+#    - -i
 #    - LD_LIBRARY_PATH=/opt/flow123d/lib
-    - /opt/flow123d/bin/flow123d
+#    - /opt/flow123d/bin/flow123d
+    - flow123d
     ### this is for installed Flow123d package or individual build
 #    - /home/domesova/flow123d_3.1.0/bin/fterm.sh
 #    - /home/paulie/local/flow123d/flow123d_3.1.0/bin/fterm.sh
