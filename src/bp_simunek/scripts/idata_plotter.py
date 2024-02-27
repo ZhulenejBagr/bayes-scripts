@@ -7,7 +7,7 @@ if __name__ == "__main__":
     # idata name structure:
     # <type_of_set>.<sampler_used>.idata
     #
-    paths = glob("/mnt/idata/*")
+    paths = glob("/mnt/samplers/data/idata/*")
     for path in paths:
         print(f"Plotting data for {path}")
         folder_path, filename = os.path.split(path)

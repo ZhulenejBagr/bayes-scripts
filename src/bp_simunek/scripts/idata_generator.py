@@ -13,7 +13,7 @@ def generate_standard_data_sets():
     print("Generating standard data sets...")
     print("--------------------------------")
     print("\n")
-    generate_idata_sets(samples=samples, tune=tune, prior_mean=prior_mean, prior_cov=prior_cov, prefix=prefix)
+    generate_idata_sets(samples=samples // 4, tune=tune, prior_mean=prior_mean, prior_cov=prior_cov, prefix=prefix)
 
 def generate_offset_data_sets():
     samples = 10000
@@ -25,7 +25,7 @@ def generate_offset_data_sets():
     print("Generating offset data sets...")
     print("--------------------------------")
     print("\n")
-    generate_idata_sets(samples=samples, tune=tune, prior_mean=prior_mean, prior_cov=prior_cov, prefix=prefix)
+    generate_idata_sets(samples=samples // 4, tune=tune, prior_mean=prior_mean, prior_cov=prior_cov, prefix=prefix)
 
 
 if __name__ == "__main__":

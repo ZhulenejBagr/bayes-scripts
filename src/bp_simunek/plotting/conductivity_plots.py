@@ -8,7 +8,7 @@ import numpy as np
 import numpy.typing as npt
 from arviz import InferenceData
 import arviz as az
-from scipy.stats import multivariate_normal, gaussian_kde
+from scipy.stats import multivariate_normal, gaussian_kde, norm
 import samplers.idata_tools as tools
 
 def plot_pair_custom(
@@ -280,6 +280,7 @@ def plot_posterior_with_prior_compare(
         prior_colors = ["darkblue", "darkred"]
 
         current_ax.set_xlim([-7.5, 15])
+        current_ax.set_ylim([0, 1])
 
         fig.suptitle("Porovnání metod vzorkování")
 
@@ -303,15 +304,14 @@ def plot_posterior_with_prior_compare(
                 linspace0 = np.linspace(-5, 15, 250)
                 linspace1 = np.linspace(-7.5, 12.5, 250)
                 linspaces = [linspace0, linspace1]
-                x, y = np.meshgrid(linspace0, linspace1)
-                grid = np.dstack((x, y))
-                pdf_values = multivariate_normal(mean=analytic_mean, cov=analytic_cov).pdf(grid)
-                density = np.sum(pdf_values, axis=1-i)
-                # normalize
-                density = np.divide(density, 12.5)
-                current_ax.plot(linspaces[i], density, color=prior_colors[i], label=f"Prior[{i}]")
+                densities = [
+                    norm(loc=analytic_mean[0], scale=np.sqrt(analytic_cov[0, 0])).pdf(linspaces[0]),
+                    norm(loc=analytic_mean[1], scale=np.sqrt(analytic_cov[1, 1])).pdf(linspaces[1])
+                ]
+                current_ax.plot(linspaces[i], densities[i], color=prior_colors[i], label=f"Prior[{i}]")
             
             if not analytic:
+                density = gaussian_kde(prior_data[:, :, i])
                 current_ax.plot(linspace, density(linspace), color=prior_colors[i], label=f"Prior[{i}]")
         
             current_ax.legend()
@@ -323,10 +323,10 @@ def plot_posterior_with_prior_compare(
     plt.close()
 
 def plot_pair_custom_compare(
-        idata_list: List[InferenceData], 
-        filename: str = "posterior_prior_pair_plot_compare.pdf", 
+        idata_list: List[InferenceData],
+        filename: str = "posterior_prior_pair_plot_compare.pdf",
         folder_path: str = graphs_path()) -> None:
-    wrl = [1, 1, 14, 1, 3, 1, 1, 14, 1]
+    wrl = [1, 2, 14, 1, 3, 1, 2, 14, 1]
     fig, ax = plt.subplots(nrows=2, ncols=9, gridspec_kw={'width_ratios': wrl})
     fig.set_figwidth(16)
     fig.set_figheight(9)
@@ -393,14 +393,20 @@ def plot_pair_custom_compare(
         middle_ax.set_ylim([-7.5, 12.5])
 
         # add colorbars and legend
-        fig.colorbar(posterior_sm, label="Posterior PDF", cax=left_ax)
-        fig.colorbar(prior_sm, label="Prior PDF", cax=right_ax)
+        fig.colorbar(posterior_sm, label="Posterior PDF", cax=left_ax, format='%.0e')
+
+        fig.colorbar(prior_sm, label="Prior PDF", cax=right_ax, format='%.0e')
         middle_ax.legend()
 
     # hide plots to avoid clumping
     for x in [0, 1]:
-        for y in [0, 1, 6]:
+        for y in [1, 4, 6]:
             ax[x, y].axis("off")
+    # fix fontsize of colorbars
+    for x in [0, 1]:
+        for y in [0, 5]:
+            ax[x, y].tick_params(labelsize=8)
+
 
     # save plot to file
     save_plot(folder_path=folder_path, filename=filename)
@@ -415,12 +421,22 @@ def plot_idata_sets(prefix: str = "regular") -> None:
         idata = tools.read_idata_from_file(filename=path)
         plot_all(idata, folder_path=os.path.join(graphs_path(), prefix, methods[index]))
 
-def compare_posterior_with_prior() -> None:
+def compare_posterior_with_prior(
+        filename: str = "posterior_prior_plot_compare.pdf",
+        analytic: bool = True,
+        prefix: str = "standard") -> None:
     idata_names = ["MH", "custom_MH", "DEMZ", "NUTS"]
-    idata_list = [tools.read_idata_from_file(f"regular.{name}.idata") for name in idata_names]
-    plot_posterior_with_prior_compare(idata_list, merge_chains=True, analytic=True)
+    idata_list = [tools.read_idata_from_file(f"{prefix}.{name}.idata") for name in idata_names]
+    plot_posterior_with_prior_compare(idata_list, merge_chains=True, analytic=analytic, filename=filename)
 
-def compare_pair_plot_custom() -> None:
+def compare_pair_plot_custom(
+        filename: str = "posterior_prior_pair_plot_compare.pdf",
+        prefix: str = "standard") -> None:
     idata_names = ["MH", "custom_MH", "DEMZ", "NUTS"]
-    idata_list = [tools.read_idata_from_file(f"regular.{name}.idata") for name in idata_names]
-    plot_pair_custom_compare(idata_list)
+    idata_list = [tools.read_idata_from_file(f"{prefix}.{name}.idata") for name in idata_names]
+    plot_pair_custom_compare(idata_list, filename=filename)
+
+if __name__ == "__main__":
+    compare_pair_plot_custom(filename="posterior_prior_pair_plot_compare_offset.pdf", prefix="offset")
+    compare_pair_plot_custom(filename="posterior_prior_pair_plot_compare_offset.png", prefix="offset")
+    compare_posterior_with_prior(filename="posterior_with_prior_compare_offset.pdf", prefix="offset")
