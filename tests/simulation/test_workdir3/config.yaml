@@ -68,10 +68,10 @@ observe_points:
   - H1 # HGT2-4
   #- H2 # HGT2-3
 conductivity_observe_points:
-  - V01_cond
-  - V02_cond
-  - H01_cond
-  - H02_cond
+  - V1_cond
+  #- V2_cond
+  - H1_cond
+  #- H2_cond
 
 # parameters substituted into the HM model template
 hm_params:
