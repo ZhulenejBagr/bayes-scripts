@@ -1,8 +1,7 @@
 import numpy as np
-from samplers.pymc_sampler import generate_idata_sets
+from src.bp_simunek.samplers.pymc_sampler import generate_idata_sets
 # idata is saved to folder /idata relative to this script's directory
 # all heavy lifting is done by the generate_idata_sets method
-# 
 
 def generate_standard_data_sets():
     samples = 10000
@@ -14,7 +13,7 @@ def generate_standard_data_sets():
     print("Generating standard data sets...")
     print("--------------------------------")
     print("\n")
-    generate_idata_sets(samples=samples, tune=tune, prior_mean=prior_mean, prior_cov=prior_cov, prefix=prefix)
+    generate_idata_sets(samples=samples // 4, tune=tune, prior_mean=prior_mean, prior_cov=prior_cov, prefix=prefix)
 
 def generate_offset_data_sets():
     samples = 10000
@@ -26,7 +25,7 @@ def generate_offset_data_sets():
     print("Generating offset data sets...")
     print("--------------------------------")
     print("\n")
-    generate_idata_sets(samples=samples, tune=tune, prior_mean=prior_mean, prior_cov=prior_cov, prefix=prefix)
+    generate_idata_sets(samples=samples // 4, tune=tune, prior_mean=prior_mean, prior_cov=prior_cov, prefix=prefix)
 
 
 if __name__ == "__main__":

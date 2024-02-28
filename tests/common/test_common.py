@@ -7,6 +7,7 @@ from scipy import stats
 from bp_simunek.common.memoize import File
 from pathlib import Path
 import pytest
+import logging
 
 from bp_simunek.common.flow_wrapper import Wrapper
 from bp_simunek.common.flow123d_simulation import generate_time_axis
@@ -95,6 +96,7 @@ def test_flow_simulation1():
         res, sample_data = wrap.get_observations()
 
         print("Flow123d res: ", res, sample_data)
+        print(sample_data)
         assert res > 0
 
 
@@ -115,8 +117,7 @@ def test_flow_simulation2():
         idx = int(pars[0])
         wrap.set_parameters(data_par=pars[1:])
         res, sample_data = wrap.get_observations()
-
-        print("Flow123d res: ", res, sample_data)
+        logging.info(f"Flow123d res: {res} {sample_data}")
 
         times = generate_time_axis(wrap.sim._config)
         # sample_data shape: (1, n_times, n_elements)
