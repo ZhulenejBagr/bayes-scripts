@@ -9,8 +9,8 @@ from pathlib import Path
 import pytest
 import logging
 
-from bp_simunek.common.flow_wrapper import Wrapper
-from bp_simunek.common.flow123d_simulation import generate_time_axis
+from bp_simunek.simulation.flow_wrapper import Wrapper
+from bp_simunek.simulation.flow123d_simulation import generate_time_axis
 
 script_dir = script_dir = os.path.dirname(os.path.realpath(__file__))
 

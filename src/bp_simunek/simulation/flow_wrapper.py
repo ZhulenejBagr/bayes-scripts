@@ -8,7 +8,7 @@ from pathlib import Path
 rep_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(rep_dir)
 
-from bp_simunek.common.flow123d_simulation import Flow123dSimulation
+from bp_simunek.simulation.flow123d_simulation import Flow123dSimulation
 
 
 def setup_config(output_dir):
