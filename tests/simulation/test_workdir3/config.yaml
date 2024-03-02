@@ -12,13 +12,13 @@ parameters:
     bounds: [24.8176103991685, 0.5]
   - name: init_stress_x
     type: lognorm
-    bounds: [ 17.5531801762476, 0.3]
+    bounds: [ 17.6221730477346, 0.3]
   - name: init_stress_y
     type: lognorm
-    bounds: [ 16.7599495371307, 0.3]
+    bounds: [ 16.2134058307626, 0.3]
   - name: init_stress_z
     type: lognorm
-    bounds: [ 16.4545678875795, 0.3]
+    bounds: [ 17.9098551201864, 0.3]
 #  - name: init_pressure
 #    type: norm
 #    bounds: [ 100, 10 ]
@@ -68,10 +68,10 @@ observe_points:
   - H1 # HGT2-4
   #- H2 # HGT2-3
 conductivity_observe_points:
-  - V01_cond
-  - V02_cond
-  - H01_cond
-  - H02_cond
+  - V1_cond
+  #- V2_cond
+  - H1_cond
+  #- H2_cond
 
 # parameters substituted into the HM model template
 hm_params:
@@ -92,13 +92,13 @@ hm_params:
     storativity: 2.998917e-07  # S = rho * g * (beta_s + nu * beta_w)
     # permeability k=6e-22 m2, dyn. viscosity mu=0.001 Pa.s, g=9.81 m.s-2
     bulk_conductivity: 5.886E-15  # K = k * rho * g /mu
-    init_pressure: 100 # 3MPa = p = h*rho*g => h = 300 m
+    init_pressure: 275 # 3MPa = p = h*rho*g => h = 300 m
 
     young_modulus: 60e9
     poisson_ratio: 0.23
-    init_stress_x: 42e6
-    init_stress_y: 19e6
-    init_stress_z: 14e6
+    init_stress_x: 45e6
+    init_stress_y: 11e6
+    init_stress_z: 60e6
 
     # non-linear permeability
 #    perm_kr: 8e-20

@@ -1,21 +1,29 @@
 # bayes-scripts
 various bayes scripts
 
-# instalace balíčku
-```
-git clone https://github.com/bagr-sus/bayes-scripts
 
+# Install
+1. Create image:
 ```
-# vytvoření lokálního image
+cd docker; ./build-image.sh; cd ..
 ```
-cd bayes-scripts/
-./docker/build-image.sh
-
+Note: *`docker/requirements.txt` is used to install packages into the image*
+2. Create virtual environment using the container:
 ```
-## spuštění tinyDA sample scriptu
+./bin/fterm
+./bin/setup_venv
 ```
-cd bayes-scripts/
+Note 1: *`./requirements.txt` is used to install packages into the venv*  
+Note 2: *Different packages required for `pymc` and `tinyDA` due to different
+        `arviz` version dependency*  
+Note 3: *Currently, we do not even need our own image. All packages go into `venv`.*
 
 
-
+# Run tests
+Open container, activate venv, run pytest:
+```
+./bin/fterm
+source venv/bin/activate
+cd tests/common
+pytest test_common.py
 ```
