@@ -27,3 +27,12 @@ source venv/bin/activate
 cd tests/common
 pytest test_common.py
 ```
+
+# Run tinyDA sample script
+Open container, activate venv, run script:
+```
+./bin/fterm
+source venv/bin/activate
+./bin/run_tinyda_sample.sh
+
+```
