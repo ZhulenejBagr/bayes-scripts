@@ -12,6 +12,8 @@ def sample(
         prior_mean: npt.NDArray = np.array([5, 3]),
         prior_cov: npt.NDArray = np.array([[4, -2], [-2, 4]])) -> InferenceData:
 
+    print(f"Sampling {samples} samples with {tune} tune per chain, {n_chains} chains")
+
     # prior setup
     prior = multivariate_normal(mean=prior_mean, cov=prior_cov)
 
@@ -52,14 +54,3 @@ def sample(
     
 
     return idata
-
-
-if __name__ == "__main__":
-    idata = sample()
-    print(summary(idata))
-    explicit_data = {
-        "U_0": idata["posterior"]["U_0"],
-        "U_1": idata["posterior"]["U_1"],
-        "log_likelihood": idata["sample_stats"]["likelihood"]
-    }
-    plot_pair_custom(idata, explicit_data=explicit_data, plot_prior=False)
