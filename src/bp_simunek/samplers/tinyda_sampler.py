@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats import multivariate_normal, norm
 import tinyDA as tda
 import numpy.typing as npt
+
 from arviz import InferenceData, summary
 from src.bp_simunek.plotting.conductivity_plots import plot_pair_custom
 

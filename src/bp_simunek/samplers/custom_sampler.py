@@ -2,7 +2,8 @@ import numpy as np
 import numpy.random as npr
 from scipy.stats import multivariate_normal, norm
 import arviz as az
-from samplers.idata_tools import save_idata_to_file
+
+from src.bp_simunek.samplers.idata_tools import save_idata_to_file
 
 generator = npr.Generator(npr.MT19937())
 
