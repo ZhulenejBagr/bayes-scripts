@@ -2,11 +2,10 @@ import pathlib
 import os
 import matplotlib.pyplot as plt
 
-def base_path() -> None:
-    return pathlib.Path(__file__).parent.resolve()
+from definitions import ROOT_DIR
 
 def graphs_path() -> None:
-    return os.path.join(base_path(), "data", "graphs")
+    return os.path.join(ROOT_DIR, "data", "graphs")
 
 def save_plot(
         filename: str,
