@@ -1,8 +1,7 @@
 import numpy as np
-from samplers.pymc_sampler import generate_idata_sets
+from src.bp_simunek.samplers.pymc_sampler import generate_idata_sets
 # idata is saved to folder /idata relative to this script's directory
 # all heavy lifting is done by the generate_idata_sets method
-# 
 
 def generate_standard_data_sets():
     samples = 10000

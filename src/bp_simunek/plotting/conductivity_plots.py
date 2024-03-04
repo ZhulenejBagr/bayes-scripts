@@ -1,15 +1,17 @@
 import os
 from typing import List
+
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
-from plotting.plotting_tools import graphs_path, save_plot
 import numpy as np
 import numpy.typing as npt
 from arviz import InferenceData
 import arviz as az
 from scipy.stats import multivariate_normal, gaussian_kde, norm
-import samplers.idata_tools as tools
+
+import src.bp_simunek.samplers.idata_tools as tools
+from src.bp_simunek.plotting.plotting_tools import graphs_path, save_plot
 
 def plot_pair_custom(
         idata: InferenceData,

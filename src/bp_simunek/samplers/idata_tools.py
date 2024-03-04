@@ -3,11 +3,10 @@ import pathlib
 import pickle
 from arviz import InferenceData
 
-def base_path() -> None:
-    return pathlib.Path(__file__).parent.resolve()
+from definitions import ROOT_DIR
 
 def idata_path() -> None:
-    return os.path.join(base_path(), "data", "idata")
+    return os.path.join(ROOT_DIR, "data", "idata")
 
 def save_idata_to_file(
         idata: InferenceData,

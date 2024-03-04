@@ -1,7 +1,0 @@
-from samplers.pymc_sampler import sample_regular
-from samplers.idata_tools import save_idata_to_file
-
-if __name__ == "__main__":
-    idata = sample_regular()
-    save_idata_to_file(idata, filename="idata")
-    
