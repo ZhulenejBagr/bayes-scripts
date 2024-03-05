@@ -213,8 +213,8 @@ class Flow123dSimulation:
     def get_from_observe(self, observe_dict, point_names, field_name, select_times=None):
         points = observe_dict['points']
         all_point_names = [p["name"] for p in points]
-        # print('all_point_names', all_point_names)
-        # print('point_names', point_names)
+        # logging.info('all_point_names' + str(all_point_names))
+        # logging.info('point_names' + str(point_names))
         points2collect_indices = []
         for p2c in point_names:
             tmp = [i for i, pn in enumerate(all_point_names) if pn == p2c]
