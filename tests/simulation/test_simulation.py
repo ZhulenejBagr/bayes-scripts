@@ -4,11 +4,13 @@ import numpy as np
 from pathlib import Path
 import pytest
 import logging
+import tinyDA as tda
 
 from bp_simunek import common
 from bp_simunek.common.memoize import File
 from bp_simunek.simulation.flow_wrapper import Wrapper
 from bp_simunek.simulation.flow123d_simulation import generate_time_axis
+from bp_simunek.scripts.tinyda_flow import TinyDAFlowWrapper
 
 script_dir = script_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -132,5 +134,26 @@ def test_flow_simulation3():
 
         times = generate_time_axis(wrap.sim._config)
         # sample_data shape: (1, n_times, n_elements)
+        logging.info(pars[1:])
         assert res >= 0
         # assert len(times) == sample_data.shape[1]
+
+def test_flow_with_tinyda():
+    os.chdir(script_dir)
+    workdir = Path("test_workdir3").absolute()
+    solver_id = 42
+    wrap = Wrapper(solver_id, workdir)
+    wrap.sim._config["measured_data_dir"] = os.path.join(script_dir, "../measured_data")
+    # tinyda + flow123 wrapper
+    tinyda_wrapper = TinyDAFlowWrapper(wrap)
+    # setup priors from config of flow wrapper
+    tinyda_wrapper.setup_priors(wrap.sim._config)
+    # extract prior dists
+    dists = [prior["dist"] for key, prior in dict(sorted(tinyda_wrapper.priors.items())).items()]
+    # prior object for sampling
+    comp_prior = tda.CompositePrior(tinyda_wrapper.priors)
+    logging.info(tinyda_wrapper.sample_prior())
+    wrap.set_parameters(tinyda_wrapper.sample_prior())
+    res, data = wrap.get_observations()
+    
+    assert res >= 0
