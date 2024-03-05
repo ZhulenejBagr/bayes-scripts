@@ -151,9 +151,9 @@ def test_flow_with_tinyda():
     # extract prior dists
     dists = [prior["dist"] for key, prior in dict(sorted(tinyda_wrapper.priors.items())).items()]
     # prior object for sampling
-    comp_prior = tda.CompositePrior(tinyda_wrapper.priors)
-    logging.info(tinyda_wrapper.sample_prior())
+    comp_prior = tda.CompositePrior(dists)
     wrap.set_parameters(tinyda_wrapper.sample_prior())
     res, data = wrap.get_observations()
+    logging.info(data)
     
     assert res >= 0
