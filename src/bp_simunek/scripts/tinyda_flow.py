@@ -39,12 +39,15 @@ class TinyDAFlowWrapper():
         self.priors = priors
 
     def loglike(self, data):
-        # TODO figure out loglike
-        pass
+        # temporary random likelihood
+        return np.log(sps.uniform(0.2, 0.8).rvs(1))
 
     def forward_model(self, params):
         self.flow_wrapper.set_parameters(data_par=params)
         res, data = self.flow_wrapper.get_observations()
+        # TODO add proper data parsing
+        # currently it only removes 2 last elements
+        data = data[:-2]
         if res >= 0:
             return data
 
@@ -52,6 +55,6 @@ class TinyDAFlowWrapper():
     def sample_prior(self):
         assert self.priors
         values = []
-        for key, prior in dict(sorted(self.priors.items())).items():
+        for _, prior in dict(sorted(self.priors.items())).items():
             values.append(prior["dist"].rvs(1))
         return values
