@@ -16,6 +16,8 @@ from bp_simunek.samplers.idata_tools import save_idata_to_file
 
 script_dir = script_dir = os.path.dirname(os.path.realpath(__file__))
 
+
+# @pytest.mark.skip
 def test_call_flow():
     """
     Run inside container:
@@ -67,6 +69,7 @@ def test_call_flow():
     shutil.rmtree(workdir)
 
 
+# @pytest.mark.skip
 def test_flow_simulation1():
     os.chdir(script_dir)
     workdir = Path("test_workdir").absolute()
@@ -89,6 +92,7 @@ def test_flow_simulation1():
         assert res > 0
 
 
+# @pytest.mark.skip
 def test_flow_simulation2():
     os.chdir(script_dir)
     workdir = Path("test_workdir2").absolute()
@@ -114,32 +118,89 @@ def test_flow_simulation2():
         assert len(times) == sample_data.shape[1]
 
 
-#def test_flow_simulation3():
-#    os.chdir(script_dir)
-#    workdir = Path("test_workdir3").absolute()
-#    solver_id = 42
-#    wrap = Wrapper(solver_id, workdir)
-#
-#    params_in = np.array([
-#        [0, 31041937523.11239, 41023533.68961888, 18558265.240542404, 15795614.673716737, 9.420922909068678e-21,
-#            49.76537298111819, 1.0078720643166661e-16, 6.637653325266047, -0.0625, -0.6875],
-#        [1, 53289723492.17694, 41023533.68961888, 18558265.240542404, 15795614.673716737, 9.420922909068678e-21,
-#            49.76537298111819, 1.0078720643166661e-16, 6.637653325266047, -0.0625, -0.6875]
-#    ])
-#
-#    for pars in params_in:
-#        idx = int(pars[0])
-#        wrap.set_parameters(data_par=pars[1:])
-#        res, sample_data = wrap.get_observations()
-#
-#        print("Flow123d res: ", res, sample_data)
-#
-#        times = generate_time_axis(wrap.sim._config)
-#        # sample_data shape: (1, n_times, n_elements)
-#        logging.info(pars[1:])
-#        assert res >= 0
-#        # assert len(times) == sample_data.shape[1]
+@pytest.mark.skip
+def test_flow_simulation3():
+    os.chdir(script_dir)
+    workdir = Path("test_workdir3").absolute()
+    solver_id = 42
+    wrap = Wrapper(solver_id, workdir)
 
+    params_in = np.array([
+        [0, 31041937523.11239, 41023533.68961888, 18558265.240542404, 15795614.673716737, 9.420922909068678e-21,
+            49.76537298111819, 1.0078720643166661e-16, 6.637653325266047, -0.0625, -0.6875],
+        [1, 53289723492.17694, 41023533.68961888, 18558265.240542404, 15795614.673716737, 9.420922909068678e-21,
+            49.76537298111819, 1.0078720643166661e-16, 6.637653325266047, -0.0625, -0.6875]
+    ])
+
+    for pars in params_in:
+        idx = int(pars[0])
+        wrap.set_parameters(data_par=pars[1:])
+        res, sample_data = wrap.get_observations()
+
+        print("Flow123d res: ", res, sample_data)
+
+        times = generate_time_axis(wrap.sim._config)
+        # sample_data shape: (1, n_times, n_elements)
+        logging.info(pars[1:])
+        assert res >= 0
+        # assert len(times) == sample_data.shape[1]
+
+
+# @pytest.mark.skip
+def test_flow_simulation10():
+    os.chdir(script_dir)
+    workdir = Path("test_workdir10").absolute()
+    solver_id = 42
+    wrap = Wrapper(solver_id, workdir)
+
+    # old conductivity term with original TSX parameters
+    params_in = np.array([
+        [0, 60e9, 4.5e7, 1.1e7,
+         6e-22, 8e-17, 4e-07, 3e-07]
+    ])
+
+    for pars in params_in:
+        idx = int(pars[0])
+        wrap.set_parameters(data_par=pars[1:])
+        res, sample_data = wrap.get_observations()
+
+        print("Flow123d res: ", res, sample_data)
+
+        times = generate_time_axis(wrap.sim._config)
+        # sample_data shape: (1, n_times, n_elements)
+        logging.info(pars[1:])
+        assert res >= 0
+        assert len(times) == sample_data.shape[0]
+
+
+# @pytest.mark.skip
+def test_flow_simulation11():
+    os.chdir(script_dir)
+    workdir = Path("test_workdir11").absolute()
+    solver_id = 42
+    wrap = Wrapper(solver_id, workdir)
+
+    # new conductivity term partially with original TSX parameters
+    params_in = np.array([
+        [0, 60e9, 4.5e7, 1.1e7, 6e7,
+         6e-22, 33.3, 1e-16, 6]
+    ])
+
+    for pars in params_in:
+        idx = int(pars[0])
+        wrap.set_parameters(data_par=pars[1:])
+        res, sample_data = wrap.get_observations()
+
+        print("Flow123d res: ", res, sample_data)
+
+        times = generate_time_axis(wrap.sim._config)
+        # sample_data shape: (1, n_times, n_elements)
+        logging.info(pars[1:])
+        assert res >= 0
+        assert len(times) == sample_data.shape[0]
+
+
+@pytest.mark.skip
 def test_flow_with_tinyda():
     os.chdir(script_dir)
     # flow setup

@@ -119,7 +119,8 @@ class Flow123dSimulation:
                 return 3, collected_values  # tag, value_list
             except:
                 logging.error("Collecting sample results failed:")
-                traceback.print_exc()
+                logging.error(traceback.format_exc())
+                # traceback.print_exc()
                 return -3, None
             # return -1, None  # tag, value_list
         print("Running Flow123d - HM...finished")
@@ -136,7 +137,8 @@ class Flow123dSimulation:
             return 1, collected_values  # tag, value_list
         except:
             logging.error("Collecting sample results failed:")
-            traceback.print_exc()
+            logging.error(traceback.format_exc())
+            # traceback.print_exc()
             return -3, None
 
     # def check_data(self, data, minimum, maximum):
