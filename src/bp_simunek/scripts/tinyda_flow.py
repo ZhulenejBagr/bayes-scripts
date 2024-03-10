@@ -32,7 +32,11 @@ class TinyDAFlowWrapper():
                     prior["dist"] = sps.uniform(loc = bounds[0], scale = bounds[1] - bounds[0])
                 # edge case, dont know how to interpret truncnorm - hardcoded to return a known good value for now
                 case "truncnorm":
-                    prior["dist"] = sps.norm(loc = 50, scale = 1e-4)
+                    # prior["dist"] = sps.norm(loc = 50, scale = 1e-4)
+                    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.truncnorm.html
+                    a_trunc, b_trunc, mu, sigma = bounds
+                    a, b = (a_trunc - mu) / sigma, (b_trunc - mu) / sigma
+                    prior["dist"] = sps.truncnorm(a, b, loc=mu, scale=sigma)
             priors[idx] = prior
             idx += 1
 
