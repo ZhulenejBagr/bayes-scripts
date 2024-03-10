@@ -11,8 +11,6 @@ from bp_simunek import common
 from bp_simunek.common.memoize import File
 from bp_simunek.simulation.flow_wrapper import Wrapper
 from bp_simunek.simulation.flow123d_simulation import generate_time_axis
-from bp_simunek.scripts.tinyda_flow import TinyDAFlowWrapper
-from bp_simunek.samplers.idata_tools import save_idata_to_file
 
 script_dir = script_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -199,45 +197,3 @@ def test_flow_simulation11():
         assert res >= 0
         assert len(times) == sample_data.shape[0]
 
-
-@pytest.mark.skip
-def test_flow_with_tinyda():
-    os.chdir(script_dir)
-    # flow setup
-    workdir = Path("test_workdir3").absolute()
-    solver_id = 42
-    wrap = Wrapper(solver_id, workdir)
-    wrap.sim._config["measured_data_dir"] = os.path.join(script_dir, "../measured_data")
-
-    # tinyda + flow123 wrapper
-    tinyda_wrapper = TinyDAFlowWrapper(wrap)
-
-    # setup priors from config of flow wrapper
-    tinyda_wrapper.setup_priors(wrap.sim._config)
-
-    # extract prior dists
-    dists = [prior["dist"] for key, prior in dict(sorted(tinyda_wrapper.priors.items())).items()]
-
-    # prior object for sampling
-    comp_prior = tda.CompositePrior(dists)
-
-    # combine into posterior
-    posterior = tda.Posterior(comp_prior, tinyda_wrapper, tinyda_wrapper.forward_model)
-
-    # setup proposal
-    proposal = tda.IndependenceSampler(comp_prior)
-
-    # sampling process
-    sample_count = 2
-    samples = tda.sample(posterior, proposal, iterations=sample_count, n_chains=1)
-    for sample in samples["chain_0"]:
-        logging.info(sample.parameters)
-
-    # check and save samples
-    # + 1 to account for the first sample (prior)
-    assert len(samples["chain_0"]) == sample_count + 1
-    # get param names
-    params = [param["name"] for param in wrap.sim._config["parameters"]]
-    idata = tda.to_inference_data(chain=samples, parameter_names=params)
-    logging.info(az.summary(idata))
-    save_idata_to_file(idata, filename="flow.idata",)
