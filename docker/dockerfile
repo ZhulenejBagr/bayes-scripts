@@ -1,17 +1,6 @@
 FROM flow123d/endorse_ci:e67f54
 
 COPY requirements.txt /tmp/requirements.txt
-# COPY sample_script.py /root/sample_script.py
-# COPY pymc_metropolis.py /root/pymc_metropolis.py
-# COPY blackbox.py /root/blackbox.py
-
-# RUN python3 -m venv ~/.virtualenvs/bruh
-# RUN source ~/.virtualenvs/bruh/bin/activate
-# RUN pip install -r /root/requirements.txt
-
-# RUN sudo apt-get update && sudo apt-get install -y \
-#     <new_package>
-
 
 # This enables temporary files using mount, instead of removing copy layers
 # https://docs.docker.com/build/buildkit/
