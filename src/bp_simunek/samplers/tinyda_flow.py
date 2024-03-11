@@ -72,8 +72,6 @@ class TinyDAFlowWrapper():
     def forward_model(self, params):
         self.flow_wrapper.set_parameters(data_par=params)
         res, data = self.flow_wrapper.get_observations()
-        # TODO add proper data parsing
-        # currently it only removes 2 last elements
         if self.flow_wrapper.sim._config["conductivity_observe_points"]:
             num = len(self.flow_wrapper.sim._config["conductivity_observe_points"])
             data = data[:-num]
