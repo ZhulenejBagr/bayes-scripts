@@ -3,3 +3,4 @@ tinyDA==0.9.17
 pytest
 pyyaml-include
 pyvista
+ray
