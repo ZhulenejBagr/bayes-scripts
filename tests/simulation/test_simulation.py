@@ -180,13 +180,12 @@ def test_flow_simulation11():
 
     # new conductivity term partially with original TSX parameters
     params_in = np.array([
-        [0, 60e9, 4.5e7, 1.1e7, 6e7,
+        [60e9, 4.5e7, 1.1e7, 6e7,
          6e-22, 33.3, 1e-16, 6]
     ])
 
     for pars in params_in:
-        idx = int(pars[0])
-        wrap.set_parameters(data_par=pars[1:])
+        wrap.set_parameters(data_par=pars)
         res, sample_data = wrap.get_observations()
 
         print("Flow123d res: ", res, sample_data)
