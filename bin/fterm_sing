@@ -11,10 +11,15 @@ if [ -e ${sif_image} ]
 then
     echo "Opening SIF image '${sif_image}'"
 else
-    #image=$(./endorse_fterm image)
+#    image=$(./fterm image)
     image="flow123d/endorse_ci:e67f54"
     echo "Building SIF image '${sif_image}' from '${image}'"
     singularity build ${sif_image} docker://$image
+# local docker registry:
+# https://groups.google.com/a/lbl.gov/g/singularity/c/ZXOaNaM_6MY
+#    SINGULARITY_NOHTTPS=true singularity build ${sif_image} docker://localhost:5000/$image
+# should work from singularity version 3:
+#    singularity build ${sif_image} docker-daemon://$image
 fi
 
 cd ${current_dir}
