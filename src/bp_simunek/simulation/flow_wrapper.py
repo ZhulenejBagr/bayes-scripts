@@ -5,6 +5,8 @@ import sys
 import yaml
 from pathlib import Path
 
+import ray
+
 rep_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(rep_dir)
 
@@ -63,6 +65,9 @@ def setup_config(output_dir):
 
 class Wrapper:
     def __init__(self, solver_id, output_dir: Path, config_dict=None):
+        self.initialize(solver_id, output_dir, config_dict)
+
+    def initialize(self, solver_id, output_dir: Path, config_dict=None):
 
         if config_dict is None:
             config_dict = setup_config(output_dir)
@@ -70,13 +75,30 @@ class Wrapper:
 
         clean = config_dict["clean_sample_dir"]
         self.sim = Flow123dSimulation(config_dict, clean=clean)
-        
+
+    def set_observe_path(self, path):
+        self.sim._config["measured_data_dir"] = path
+
     def set_parameters(self, data_par):
         # conductivity = trans.normal_to_lognormal(data_par[0])
         # biot = trans.normal_to_beta(data_par[1], alfa=5, beta=5)
         # self.sim.set_parameters(np.array([conductivity, biot]))
         self.sim.set_parameters(data_par)
-        
+
     def get_observations(self):
         res = self.sim.get_observations()
         return res
+
+@ray.remote
+class RemoteWrapper(Wrapper):
+    def __init__(data):
+        return
+
+    def set_observe_path(self, path):
+        return super().set_observe_path(path)
+
+    def set_parameters(self, data_par):
+        return super().set_parameters(data_par)
+
+    def get_observations(self):
+        return super().get_observations()
