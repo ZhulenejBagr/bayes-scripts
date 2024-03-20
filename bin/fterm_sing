@@ -18,4 +18,5 @@ else
 fi
 
 cd ${current_dir}
+export SIF_IMAGE_PATH=$sif_image
 singularity shell -B ${current_dir}:${current_dir} ${sif_image}
