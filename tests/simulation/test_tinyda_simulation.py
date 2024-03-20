@@ -61,7 +61,7 @@ def test_simulation11_with_tinyda_parallel():
     wrap.sim._config["measured_data_dir"] = os.path.join(script_dir, "../measured_data")
 
     # tinyda + flow123 wrapper
-    chains = 4
+    chains = 1
     tinyda_wrapper = TinyDAFlowWrapper(wrap, chains)
 
     sample_count = 10
@@ -71,6 +71,23 @@ def test_simulation11_with_tinyda_parallel():
     logging.info("\n%s", str(az.summary(idata)))
     save_idata_to_file(idata, filename="flow.sim11.idata")
 
+@pytest.mark.skip
+def sample11(sample_count=1000, idata_name="flow_tinyda_1000.idata"):
+    os.chdir(script_dir)
+    workdir = Path("test_workdir11").absolute()
+    solver_id = 42
+    wrap = Wrapper(solver_id, workdir)
+    wrap.sim._config["measured_data_dir"] = os.path.join(script_dir, "../measured_data")
+
+    # tinyda + flow123 wrapper
+    chains = 1
+    tinyda_wrapper = TinyDAFlowWrapper(wrap, chains)
+
+    #sample_count = 10
+    idata = tinyda_wrapper.sample(sample_count=sample_count)
+    logging.info("\n%s", str(az.summary(idata)))
+    save_idata_to_file(idata, filename=idata_name)
+
 
 if __name__ == "__main__":
-    test_simulation11_with_tinyda_parallel()
+    sample11()

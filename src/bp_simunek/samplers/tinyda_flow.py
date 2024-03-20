@@ -39,7 +39,9 @@ class TinyDAFlowWrapper():
         logging.info("Creating worker directories...")
         abs_dirnames = [Path(os.path.join(basedir, dirname)).absolute() for dirname in dirnames]
         print(basedir)
-        shutil.rmtree(basedir)
+        if os.path.exists(basedir):
+            shutil.rmtree(basedir)
+            
         for dir in abs_dirnames:
             os.makedirs(dir, mode=0o755)
             shutil.copytree(datadir, dir, ignore=shutil.ignore_patterns("worker"), dirs_exist_ok=True)
@@ -158,7 +160,7 @@ class TinyDAFlowWrapper():
                 _, ndone = ray.wait([ndone], timeout=120)
             res, data = ray.get(job)
 
-            #self.pool.push(flow)
+            self.pool.push(flow)
 
             if self.flow_wrapper.sim._config["conductivity_observe_points"]:
                 num = len(self.flow_wrapper.sim._config["conductivity_observe_points"])
