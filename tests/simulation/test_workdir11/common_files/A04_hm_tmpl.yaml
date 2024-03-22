@@ -85,12 +85,12 @@ problem: !Coupling_Sequential
 
         output:
           times: <output_times>
-          fields: #[]
-           - { field: conductivity, interpolation: P1_average }
-           - piezo_head_p0
-           - pressure_p0
-#            - velocity_p0
-           - region_id
+          fields: []
+          # - { field: conductivity, interpolation: P1_average }
+          # - piezo_head_p0
+          # - pressure_p0
+#         #   - velocity_p0
+          # - region_id
           observe_fields: [pressure_p0, conductivity]
         #balance:
           #cumulative: true
@@ -118,14 +118,14 @@ problem: !Coupling_Sequential
 #          observe_points: *observe_points
         output:
           times: <output_times>
-          fields: #[]
-            - { field: displacement, interpolation: P1_average }
-            - stress
-#            - displacement_divergence
-            - mean_stress
-            - von_mises_stress
-            - initial_stress
-            - region_id
+          fields: []
+            #- { field: displacement, interpolation: P1_average }
+            #- stress
+#           # - displacement_divergence
+            #- mean_stress
+            #- von_mises_stress
+            #- initial_stress
+            #- region_id
           observe_fields: [von_mises_stress]
         solver: !Petsc
           a_tol: <mechanics_solver__a_tol>
