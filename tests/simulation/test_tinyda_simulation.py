@@ -73,7 +73,7 @@ def test_simulation11_with_tinyda_parallel():
     save_idata_to_file(idata, filename="flow.sim11.idata")
 
 @pytest.mark.skip
-def sample11(sample_count=1000, idata_name="flow_tinyda_1000.idata"):
+def sample11(sample_count=500, idata_name="flow_tinyda_1000.idata"):
     os.chdir(script_dir)
     workdir = Path("test_workdir11").absolute()
     solver_id = 42
