@@ -2,7 +2,7 @@
 
 #PBS -S /bin/bash
 #PBS -N singularity_sample_script_500
-#PBS -q charon_2h
+#PBS -q charon
 #PBS -l select=1:ncpus=4:mem=20gb 
 #PBS -l walltime=24:00:00
 
