@@ -11,7 +11,9 @@
 
 cd $PBS_O_WORKDIR
 
-
-ln -s $SCRATCHDIR ${HOME}/.r
+link=${HOME}/.r
+if ! [ -L $link] ; then
+    ln -s $SCRATCHDIR $link
+fi
 
 singularity exec bp_simunek.sif bash scripts/singularity_run_script.sh
