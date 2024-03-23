@@ -8,11 +8,11 @@
 
 # run fterm sing atleast once to create the image
 #./bin/fterm_sing
-
 cd $PBS_O_WORKDIR
 
 link=${HOME}/.r
-if ! [ -L $link] ; then
+echo $link
+if [ ! -L "${link}" ] ; then
     ln -s $SCRATCHDIR $link
 fi
 
