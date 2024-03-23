@@ -12,6 +12,6 @@
 cd $PBS_O_WORKDIR
 
 
-ln -s $SCRATCHDIR ${HOME}/.ray
+ln -s $SCRATCHDIR ${HOME}/.r
 
 singularity exec bp_simunek.sif bash scripts/singularity_run_script.sh
