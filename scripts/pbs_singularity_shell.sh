@@ -2,8 +2,8 @@
 
 #PBS -S /bin/bash
 #PBS -N singularity_sample_script_500
-#PBS -q charon
-#PBS -l select=1:ncpus=20:mem=20gb 
+#PBS -q charon_2h
+#PBS -l select=1:ncpus=4:mem=20gb 
 #PBS -l walltime=24:00:00
 
 # run fterm sing atleast once to create the image
@@ -11,6 +11,7 @@
 
 cd $PBS_O_WORKDIR
 
-ln -s $SCRATCHDIR scratch
+
+ln -s $SCRATCHDIR ${HOME}/.ray
 
 singularity exec bp_simunek.sif bash scripts/singularity_run_script.sh

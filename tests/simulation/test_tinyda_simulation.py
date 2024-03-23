@@ -76,7 +76,8 @@ def test_simulation11_with_tinyda_parallel():
 def sample11(sample_count=500, idata_name="flow_tinyda_1000.idata"):
     # probably not the best solution
     # 107 char limit for socket path
-    tmp_dir_symlink = os.path.join(ROOT_DIR, "scratch");
+    tmp_dir_symlink = os.path.join(os.path.expanduser("~"), ".ray")
+    logging.info(tmp_dir_symlink)
     if not os.path.islink(tmp_dir_symlink):
         raise Exception("Missing symlink for Ray temp storage")
     ray.init(_temp_dir=tmp_dir_symlink)
