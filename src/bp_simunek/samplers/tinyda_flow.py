@@ -178,12 +178,12 @@ class TinyDAFlowWrapper():
             job = flow.set_parameters.remote(data_par=params)
             # wait to set params
             while job:
-                _, job = ray.wait([job], timeout=120)
+                _, job = ray.wait([job])
             # await observations
             job = flow.get_observations.remote()
             ndone = job
             while ndone:
-                _, ndone = ray.wait([ndone], timeout=120)
+                _, ndone = ray.wait([ndone])
             res, data = ray.get(job)
 
             self.pool.push_idle.remote(flow)
