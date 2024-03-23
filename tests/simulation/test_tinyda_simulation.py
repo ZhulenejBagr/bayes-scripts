@@ -74,6 +74,12 @@ def test_simulation11_with_tinyda_parallel():
 
 @pytest.mark.skip
 def sample11(sample_count=500, idata_name="flow_tinyda_1000.idata"):
+    # probably not the best solution
+    # 107 char limit for socket path
+    tmp_dir_symlink = os.path.join(ROOT_DIR, "scratch");
+    if not os.path.islink(tmp_dir_symlink):
+        raise Exception("Missing symlink for Ray temp storage")
+    ray.init(_temp_dir=tmp_dir_symlink)
     os.chdir(script_dir)
     workdir = Path("test_workdir11").absolute()
     solver_id = 42
@@ -89,5 +95,5 @@ def sample11(sample_count=500, idata_name="flow_tinyda_1000.idata"):
     save_idata_to_file(idata, filename=idata_name)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":#
     sample11()

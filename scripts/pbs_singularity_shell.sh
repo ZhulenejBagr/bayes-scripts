@@ -11,4 +11,6 @@
 
 cd $PBS_O_WORKDIR
 
+ln -s $SCRATCHDIR scratch
+
 singularity exec bp_simunek.sif bash scripts/singularity_run_script.sh
