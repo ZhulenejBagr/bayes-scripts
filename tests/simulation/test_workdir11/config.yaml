@@ -1,7 +1,7 @@
 mesh_only: False
 make_plots: False
 # if True, it removes sample dir right after the sample is collected
-clean_sample_dir: False
+clean_sample_dir: True
 
 parameters:
 #  - name: storativity
