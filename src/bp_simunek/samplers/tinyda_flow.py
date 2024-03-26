@@ -13,6 +13,21 @@ from ray.util.actor_pool import ActorPool
 from bp_simunek.simulation.measured_data import MeasuredData
 from bp_simunek.simulation.flow_wrapper import RemoteWrapper
 
+@ray.remote
+class PoolWrapper():
+    def init_pool(self, pool):
+        self.pool = pool
+
+    def has_idle(self):
+        return self.pool.has_free()
+
+    def get_idle(self):
+        return self.pool.pop_idle()
+
+    def push_idle(self, flow):
+        return self.pool.push(flow)
+
+
 class TinyDAFlowWrapper():
     """
     Wrapper combining a flow123 instance into a tinyDA sampler
@@ -39,7 +54,9 @@ class TinyDAFlowWrapper():
         logging.info("Creating worker directories...")
         abs_dirnames = [Path(os.path.join(basedir, dirname)).absolute() for dirname in dirnames]
         print(basedir)
-        shutil.rmtree(basedir)
+        if os.path.exists(basedir):
+            shutil.rmtree(basedir)
+            
         for dir in abs_dirnames:
             os.makedirs(dir, mode=0o755)
             shutil.copytree(datadir, dir, ignore=shutil.ignore_patterns("worker"), dirs_exist_ok=True)
@@ -52,7 +69,7 @@ class TinyDAFlowWrapper():
     def setup_flow_pool(self, threadcount = 4):
         logging.info("Setting up flow pool...")
         # attempt to alleviate error - expand pool
-        threadcount *= 2
+        #threadcount *= 2
         dirnames = [f"worker{i}" for i in range(threadcount)]
         # create worker directories
         workdir = self.flow_wrapper.sim._config["work_dir"]
@@ -74,7 +91,14 @@ class TinyDAFlowWrapper():
         while jobs:
             _, jobs = ray.wait(jobs)
 
-        self.pool = ActorPool(pool)
+        logging.info("Creating pool thread...")
+        #self.pool = ActorPool(pool)
+        pool = ActorPool(pool)
+        pool_wrapper = PoolWrapper.remote()
+        job = pool_wrapper.init_pool.remote(pool)
+        while job:
+            _, job = ray.wait([job])
+        self.pool = pool_wrapper
         logging.info("Setting up flow pool DONE")
 
 
@@ -142,23 +166,27 @@ class TinyDAFlowWrapper():
             # reorder threads in pool?
             # a blocking in some thread?
             while True:
-                if self.pool.has_free():
-                    flow = self.pool.pop_idle()
+                if self.pool.has_idle.remote():
+                    job = self.pool.get_idle.remote()
+                    ndone = job
+                    while ndone:
+                        _, ndone = ray.wait([ndone])
+                    flow = ray.get(job)
                     break
-                time.sleep(0.5)
+                time.sleep(2)
             # create new thread to pass params to it
             job = flow.set_parameters.remote(data_par=params)
             # wait to set params
             while job:
-                _, job = ray.wait([job], timeout=120)
+                _, job = ray.wait([job])
             # await observations
             job = flow.get_observations.remote()
             ndone = job
             while ndone:
-                _, ndone = ray.wait([ndone], timeout=120)
+                _, ndone = ray.wait([ndone])
             res, data = ray.get(job)
 
-            #self.pool.push(flow)
+            self.pool.push_idle.remote(flow)
 
             if self.flow_wrapper.sim._config["conductivity_observe_points"]:
                 num = len(self.flow_wrapper.sim._config["conductivity_observe_points"])
