@@ -46,6 +46,17 @@ class TinyDAFlowWrapper():
         else:
             self.parallel = False
 
+    def create_proposal_matrix(self):
+        cov_vector = np.empty(len(self.priors))
+        for idx, prior in enumerate(self.priors):
+            if hasattr(prior, "std"):
+                cov_vector[idx] = np.power(prior.std(), 2)
+            else:
+                # add support for uniform and other dists that dont have std attrib
+                raise Exception("Unsupported distribution, no 'std' attribute.")
+        return np.multiply(np.eye(len(cov_vector)), cov_vector)
+
+
     def create_workdirs(self, basedir, dirnames, datadir):
         """
         Clean or create workdirs for worker threads.
@@ -119,8 +130,19 @@ class TinyDAFlowWrapper():
         # combine into posterior
         posterior = tda.Posterior(self.prior, self.loglike, self.forward_model)
 
+        # setup proposal covariance matrix (for random gaussian walk & adaptive metropolis)
+        proposal_cov = self.create_proposal_matrix()
+        logging.info(proposal_cov)
         # setup proposal
         proposal = tda.IndependenceSampler(self.prior)
+        # TODO figure out how to use GaussianRandomWalk and AdaptiveMetropolis
+        # problem - both algorithms add a sample from multivariate normal distribution
+        # centered around 0 with a covariance matrix to the existing sample
+        # -> result can go negative since its not a lognormal distribution, which breaks the simulation
+        # ideas how to fix
+        # get rid of some params - probably wont work since almost all of them are lognormal
+        # parse them to positive in forward model - resulting posterior distribution will be different/wrong
+        #proposal = tda.GaussianRandomWalk(proposal_cov, adaptive=True, period=3, scaling=0.15)
 
         # sampling process
         samples = tda.sample(posterior, proposal, iterations=sample_count, n_chains=self.chains)
