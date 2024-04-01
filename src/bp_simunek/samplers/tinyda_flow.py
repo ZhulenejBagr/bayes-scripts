@@ -139,13 +139,16 @@ class TinyDAFlowWrapper():
             match param["type"]:
                 case "lognorm":
                     prior = sps.lognorm(s = bounds[1], scale = np.exp(bounds[0]))
+                    logging.info(f"Prior lognorm, mu={prior.mean()}, std={prior.std()}")
                 case "unif":
                     prior = sps.uniform(loc = bounds[0], scale = bounds[1] - bounds[0])
+                    logging.info(f"Prior uniform, a={prior.a}, b={prior.b}")
                 case "truncnorm":
                     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.truncnorm.html
                     a_trunc, b_trunc, mu, sigma = bounds
                     a, b = (a_trunc - mu) / sigma, (b_trunc - mu) / sigma
                     prior = sps.truncnorm(a, b, loc=mu, scale=sigma)
+                    logging.info(f"Prior truncated norm, a={prior.a}, b={prior.b}, mean={prior.mean()}, std={prior.std()}")
             priors.append(prior)
             prior_names.append(prior_name)
 
@@ -175,6 +178,8 @@ class TinyDAFlowWrapper():
                     break
                 time.sleep(2)
             # create new thread to pass params to it
+            logging.info("Passing params to flow")
+            logging.info(str(params))
             job = flow.set_parameters.remote(data_par=params)
             # wait to set params
             while job:
@@ -194,6 +199,8 @@ class TinyDAFlowWrapper():
             if res >= 0:
                 return data
         else:
+            logging.info("Passing params to flow")
+            logging.info(str(params))
             self.flow_wrapper.set_parameters(data_par=params)
             res, data = self.flow_wrapper.get_observations()
             if self.flow_wrapper.sim._config["conductivity_observe_points"]:
