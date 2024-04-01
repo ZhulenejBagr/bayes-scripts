@@ -125,7 +125,8 @@ class TinyDAFlowWrapper():
         boreholes = ["H1"]
         cond_boreholes = []
         _, values = md.generate_measured_samples(boreholes, cond_boreholes)
-        self.setup_loglike(values, np.eye(len(values)))
+        #self.setup_loglike(values, np.eye(len(values)))
+        self.setup_loglike(values, np.multiply(10, np.eye(len(values))))
 
         # combine into posterior
         posterior = tda.Posterior(self.prior, self.loglike, self.forward_model)
