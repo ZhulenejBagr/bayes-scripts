@@ -37,7 +37,7 @@ class TinyDAFlowWrapper():
         self.flow_wrapper = flow_wrapper
         self.observed_data = MeasuredData(self.flow_wrapper.sim._config)
         self.observed_data.initialize()
-        self.noise_dist = sps.norm(loc = 0, scale = 2e-4)
+        #self.noise_dist = sps.norm(loc = 0, scale = 2e-4)
         self.chains = chains
         self.worker_dirs = []
         if self.chains > 1:
@@ -163,11 +163,6 @@ class TinyDAFlowWrapper():
         # if parallel sampling
         if self.parallel:
             # get idle flow solver
-            # TODO figure out why threads get stuck and no new idle threads show up
-            # when using self.pool.push(flow) - only 1 thread will run at a time
-            # when not using it - multiple threads, but no idle threads left
-            # reorder threads in pool?
-            # a blocking in some thread?
             while True:
                 if self.pool.has_idle.remote():
                     job = self.pool.get_idle.remote()
