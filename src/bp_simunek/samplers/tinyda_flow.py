@@ -11,21 +11,6 @@ import ray
 from ray.util.actor_pool import ActorPool
 
 from bp_simunek.simulation.measured_data import MeasuredData
-from bp_simunek.simulation.flow_wrapper import RemoteWrapper
-
-@ray.remote
-class PoolWrapper():
-    def init_pool(self, pool):
-        self.pool = pool
-
-    def has_idle(self):
-        return self.pool.has_free()
-
-    def get_idle(self):
-        return self.pool.pop_idle()
-
-    def push_idle(self, flow):
-        return self.pool.push(flow)
 
 
 class TinyDAFlowWrapper():
@@ -37,14 +22,8 @@ class TinyDAFlowWrapper():
         self.flow_wrapper = flow_wrapper
         self.observed_data = MeasuredData(self.flow_wrapper.sim._config)
         self.observed_data.initialize()
-        #self.noise_dist = sps.norm(loc = 0, scale = 2e-4)
-        self.chains = chains
         self.worker_dirs = []
-        if self.chains > 1:
-            self.setup_flow_pool(threadcount=chains)
-            self.parallel = True
-        else:
-            self.parallel = False
+        self.observed_len = -1
 
     def create_proposal_matrix(self):
         cov_vector = np.empty(len(self.priors))
@@ -67,54 +46,16 @@ class TinyDAFlowWrapper():
         print(basedir)
         if os.path.exists(basedir):
             shutil.rmtree(basedir)
-            
-        for dir in abs_dirnames:
-            os.makedirs(dir, mode=0o755)
-            shutil.copytree(datadir, dir, ignore=shutil.ignore_patterns("worker"), dirs_exist_ok=True)
-            logging.info(f"{dir} created")
+
+        for directory in abs_dirnames:
+            os.makedirs(directory, mode=0o755)
+            shutil.copytree(datadir, directory, ignore=shutil.ignore_patterns("worker"), dirs_exist_ok=True)
+            logging.info(f"{directory} created")
             self.worker_dirs.append(dir)
         # TODO check if dirs are created succesfully
         logging.info("Creating worker directories DONE")
 
-
-    def setup_flow_pool(self, threadcount = 4):
-        logging.info("Setting up flow pool...")
-        # attempt to alleviate error - expand pool
-        #threadcount *= 2
-        dirnames = [f"worker{i}" for i in range(threadcount)]
-        # create worker directories
-        workdir = self.flow_wrapper.sim._config["work_dir"]
-        basedir = os.path.join(workdir, "worker")
-        self.create_workdirs(basedir, dirnames, workdir)
-        # create flow wrappers
-        logging.info("Creating wrappers...")
-        pool = [RemoteWrapper.remote() for _ in range(threadcount)]
-        jobs = []
-        logging.info("Initializing wrappers...")
-        for idx, wrapper in enumerate(pool):
-            jobs.append(wrapper.initialize.remote(idx, self.worker_dirs[idx]))
-        while jobs:
-            _, jobs = ray.wait(jobs)
-
-        logging.info("Adding observe paths...")
-        for wrapper in pool:
-            jobs.append(wrapper.set_observe_path.remote(self.flow_wrapper.sim._config["measured_data_dir"]))
-        while jobs:
-            _, jobs = ray.wait(jobs)
-
-        logging.info("Creating pool thread...")
-        #self.pool = ActorPool(pool)
-        pool = ActorPool(pool)
-        pool_wrapper = PoolWrapper.remote()
-        job = pool_wrapper.init_pool.remote(pool)
-        while job:
-            _, job = ray.wait([job])
-        self.pool = pool_wrapper
-        logging.info("Setting up flow pool DONE")
-
-
-
-    def sample(self, sample_count = 20, tune = 1) -> az.InferenceData:
+    def sample(self, sample_count = 20, tune = 1, chains = 4) -> az.InferenceData:
 
         # setup priors from config of flow wrapper
         self.setup_priors(self.flow_wrapper.sim._config)
@@ -146,8 +87,13 @@ class TinyDAFlowWrapper():
         # parse them to positive in forward model - resulting posterior distribution will be different/wrong
         proposal = tda.GaussianRandomWalk(proposal_cov, adaptive=True, period=3, scaling=0.15)
 
+        # sample from prior to give all chains a different starting point
+        # not doing this causes all of the to start from the same spot
+        # -> messes up the directory naming, simultaneous access to the same files
+        prior_values = list(self.prior.rvs(chains))
+
         # sampling process
-        samples = tda.sample(posterior, proposal, iterations=sample_count, n_chains=self.chains)
+        samples = tda.sample(posterior, proposal, sample_count, chains, prior_values)
 
         # check and save samples
         idata = tda.to_inference_data(chain=samples, parameter_names=self.prior_names, burnin=tune)
@@ -184,52 +130,19 @@ class TinyDAFlowWrapper():
         self.loglike = tda.GaussianLogLike(observed, cov)
 
     def forward_model(self, params):
+        print(params)
         # reject automatically if params go negative
         if np.any(params <= 0):
             logging.info("Invalid proposal, skipping...")
             logging.info(params)
             return np.zeros(self.observed_len)
 
-        # if parallel sampling
-        if self.parallel:
-            # get idle flow solver
-            while True:
-                if self.pool.has_idle.remote():
-                    job = self.pool.get_idle.remote()
-                    ndone = job
-                    while ndone:
-                        _, ndone = ray.wait([ndone])
-                    flow = ray.get(job)
-                    break
-                time.sleep(2)
-            # create new thread to pass params to it
-            logging.info("Passing params to flow")
-            logging.info(str(params))
-            job = flow.set_parameters.remote(data_par=params)
-            # wait to set params
-            while job:
-                _, job = ray.wait([job])
-            # await observations
-            job = flow.get_observations.remote()
-            ndone = job
-            while ndone:
-                _, ndone = ray.wait([ndone])
-            res, data = ray.get(job)
-
-            self.pool.push_idle.remote(flow)
-
-            if self.flow_wrapper.sim._config["conductivity_observe_points"]:
-                num = len(self.flow_wrapper.sim._config["conductivity_observe_points"])
-                data = data[:-num]
-            if res >= 0:
-                return data
-        else:
-            logging.info("Passing params to flow")
-            logging.info(str(params))
-            self.flow_wrapper.set_parameters(data_par=params)
-            res, data = self.flow_wrapper.get_observations()
-            if self.flow_wrapper.sim._config["conductivity_observe_points"]:
-                num = len(self.flow_wrapper.sim._config["conductivity_observe_points"])
-                data = data[:-num]
-            if res >= 0:
-                return data
+        logging.info("Passing params to flow")
+        logging.info(params)
+        self.flow_wrapper.set_parameters(data_par=params)
+        res, data = self.flow_wrapper.get_observations()
+        if self.flow_wrapper.sim._config["conductivity_observe_points"]:
+            num = len(self.flow_wrapper.sim._config["conductivity_observe_points"])
+            data = data[:-num]
+        if res >= 0:
+            return data
