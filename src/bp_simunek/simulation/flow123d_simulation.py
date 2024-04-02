@@ -94,6 +94,16 @@ class Flow123dSimulation:
 
         # use param hash as folder name
         self.sample_dir = self.work_dir/(self.param_hash)
+        last_hash = self.param_hash
+        hasher = hashlib.md5(last_hash.encode("utf-8"))
+        # while loop to avoid hash collisions, just in case
+        while True:
+            if not self.sample_dir.exists():
+                break
+            new_hash = hasher.hexdigest()[:16]
+            hasher = hashlib.md5(new_hash.encode("utf-8"))
+            self.sample_dir = self.work_dir/(new_hash)
+
         self.sample_dir.mkdir(mode=0o775, exist_ok=True)
         assert self.sample_dir.exists()
 
