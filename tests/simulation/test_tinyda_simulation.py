@@ -35,7 +35,7 @@ def test_simulation3_with_tinyda():
     logging.info("\n%s", str(az.summary(idata)))
     save_idata_to_file(idata, filename="flow.sim3.idata")
 
-@pytest.mark.skip
+#@pytest.mark.skip
 def test_simulation11_with_tinyda():
     #ray.init(runtime_env={"working_dir": ROOT_DIR})
     os.chdir(script_dir)

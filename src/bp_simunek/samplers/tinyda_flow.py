@@ -127,6 +127,7 @@ class TinyDAFlowWrapper():
         _, values = md.generate_measured_samples(boreholes, cond_boreholes)
         #self.setup_loglike(values, np.eye(len(values)))
         self.setup_loglike(values, np.multiply(10, np.eye(len(values))))
+        self.observed_len = len(values)
 
         # combine into posterior
         posterior = tda.Posterior(self.prior, self.loglike, self.forward_model)
@@ -135,7 +136,7 @@ class TinyDAFlowWrapper():
         proposal_cov = self.create_proposal_matrix()
         logging.info(proposal_cov)
         # setup proposal
-        proposal = tda.IndependenceSampler(self.prior)
+        #proposal = tda.IndependenceSampler(self.prior)
         # TODO figure out how to use GaussianRandomWalk and AdaptiveMetropolis
         # problem - both algorithms add a sample from multivariate normal distribution
         # centered around 0 with a covariance matrix to the existing sample
@@ -143,7 +144,7 @@ class TinyDAFlowWrapper():
         # ideas how to fix
         # get rid of some params - probably wont work since almost all of them are lognormal
         # parse them to positive in forward model - resulting posterior distribution will be different/wrong
-        #proposal = tda.GaussianRandomWalk(proposal_cov, adaptive=True, period=3, scaling=0.15)
+        proposal = tda.GaussianRandomWalk(proposal_cov, adaptive=True, period=3, scaling=0.15)
 
         # sampling process
         samples = tda.sample(posterior, proposal, iterations=sample_count, n_chains=self.chains)
@@ -183,6 +184,12 @@ class TinyDAFlowWrapper():
         self.loglike = tda.GaussianLogLike(observed, cov)
 
     def forward_model(self, params):
+        # reject automatically if params go negative
+        if np.any(params <= 0):
+            logging.info("Invalid proposal, skipping...")
+            logging.info(params)
+            return np.zeros(self.observed_len)
+
         # if parallel sampling
         if self.parallel:
             # get idle flow solver
