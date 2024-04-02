@@ -7,8 +7,22 @@ import scipy.stats as sps
 import numpy as np
 import logging
 import arviz as az
+import ray
 
 from bp_simunek.simulation.measured_data import MeasuredData
+
+from tinyDA.sampler import ray_is_available
+
+@ray.remote
+class SharedTextVariable():
+    def __init__(self) -> None:
+        self.text = []
+
+    def append(self, text):
+        self.text.append(text)
+
+    def get_text(self):
+        return self.text
 
 
 class TinyDAFlowWrapper():
@@ -22,6 +36,9 @@ class TinyDAFlowWrapper():
         self.observed_data.initialize()
         self.worker_dirs = []
         self.observed_len = -1
+        self.observe_times = []
+        self.shared_text_objref = -1
+        self.parallel = False
 
     def create_proposal_matrix(self):
         cov_vector = np.empty(len(self.priors))
@@ -33,27 +50,10 @@ class TinyDAFlowWrapper():
                 raise Exception("Unsupported distribution, no 'std' attribute.")
         return np.multiply(np.eye(len(cov_vector)), cov_vector)
 
-
-    def create_workdirs(self, basedir, dirnames, datadir):
-        """
-        Clean or create workdirs for worker threads.
-        :param basedir
-        """
-        logging.info("Creating worker directories...")
-        abs_dirnames = [Path(os.path.join(basedir, dirname)).absolute() for dirname in dirnames]
-        print(basedir)
-        if os.path.exists(basedir):
-            shutil.rmtree(basedir)
-
-        for directory in abs_dirnames:
-            os.makedirs(directory, mode=0o755)
-            shutil.copytree(datadir, directory, ignore=shutil.ignore_patterns("worker"), dirs_exist_ok=True)
-            logging.info(f"{directory} created")
-            self.worker_dirs.append(dir)
-        # TODO check if dirs are created succesfully
-        logging.info("Creating worker directories DONE")
-
     def sample(self, sample_count = 20, tune = 1, chains = 4) -> az.InferenceData:
+        self.parallel = chains > 1 and ray_is_available
+        if self.parallel:
+            self.shared_text_objref = SharedTextVariable.remote()
 
         # setup priors from config of flow wrapper
         self.setup_priors(self.flow_wrapper.sim._config)
@@ -86,12 +86,28 @@ class TinyDAFlowWrapper():
         proposal = tda.GaussianRandomWalk(proposal_cov, adaptive=True, period=3, scaling=0.15)
 
         # sample from prior to give all chains a different starting point
-        # not doing this causes all of the to start from the same spot
+        # not doing this causes all of the chains to start from the same spot
         # -> messes up the directory naming, simultaneous access to the same files
+        # also adds pointless correlation and reduces coverage
         prior_values = list(self.prior.rvs(chains))
 
         # sampling process
         samples = tda.sample(posterior, proposal, sample_count, chains, prior_values)
+
+        # if parallel sampling - concat results into one list
+        if self.parallel:
+            job = self.shared_text_objref.get_text.remote()
+            ndone = job
+            while ndone:
+                _, ndone = ray.wait([ndone])
+            obs_times = ray.get(job)
+        else:
+            obs_times = self.observe_times
+
+        # write observe times to file
+        observe_times_path = os.path.join(self.flow_wrapper.sim._config["work_dir"], "observe_times.txt")
+        with open(observe_times_path, "w", encoding="utf8") as file:
+            file.writelines(obs_times)
 
         # check and save samples
         idata = tda.to_inference_data(chain=samples, parameter_names=self.prior_names, burnin=tune)
@@ -138,7 +154,20 @@ class TinyDAFlowWrapper():
         logging.info("Passing params to flow")
         logging.info(params)
         self.flow_wrapper.set_parameters(data_par=params)
+
+        start = time.time()
         res, data = self.flow_wrapper.get_observations()
+        end = time.time()
+        elapsed = end - start
+        string = str(params.tolist()) + " | " + str(elapsed) + "\n"
+        if self.parallel:
+            job = self.shared_text_objref.append.remote(string)
+            while job:
+                _, job = ray.wait([job])
+        else:
+            self.observe_times.append(string)
+
+
         if self.flow_wrapper.sim._config["conductivity_observe_points"]:
             num = len(self.flow_wrapper.sim._config["conductivity_observe_points"])
             data = data[:-num]
