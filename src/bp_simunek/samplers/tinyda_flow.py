@@ -37,7 +37,7 @@ class TinyDAFlowWrapper():
         self.flow_wrapper = flow_wrapper
         self.observed_data = MeasuredData(self.flow_wrapper.sim._config)
         self.observed_data.initialize()
-        self.noise_dist = sps.norm(loc = 0, scale = 2e-4)
+        #self.noise_dist = sps.norm(loc = 0, scale = 2e-4)
         self.chains = chains
         self.worker_dirs = []
         if self.chains > 1:
@@ -45,6 +45,17 @@ class TinyDAFlowWrapper():
             self.parallel = True
         else:
             self.parallel = False
+
+    def create_proposal_matrix(self):
+        cov_vector = np.empty(len(self.priors))
+        for idx, prior in enumerate(self.priors):
+            if hasattr(prior, "std"):
+                cov_vector[idx] = np.power(prior.std(), 2)
+            else:
+                # add support for uniform and other dists that dont have std attrib
+                raise Exception("Unsupported distribution, no 'std' attribute.")
+        return np.multiply(np.eye(len(cov_vector)), cov_vector)
+
 
     def create_workdirs(self, basedir, dirnames, datadir):
         """
@@ -114,13 +125,26 @@ class TinyDAFlowWrapper():
         boreholes = ["H1"]
         cond_boreholes = []
         _, values = md.generate_measured_samples(boreholes, cond_boreholes)
-        self.setup_loglike(values, np.eye(len(values)))
+        #self.setup_loglike(values, np.eye(len(values)))
+        self.setup_loglike(values, np.multiply(10, np.eye(len(values))))
+        self.observed_len = len(values)
 
         # combine into posterior
         posterior = tda.Posterior(self.prior, self.loglike, self.forward_model)
 
+        # setup proposal covariance matrix (for random gaussian walk & adaptive metropolis)
+        proposal_cov = self.create_proposal_matrix()
+        logging.info(proposal_cov)
         # setup proposal
-        proposal = tda.IndependenceSampler(self.prior)
+        #proposal = tda.IndependenceSampler(self.prior)
+        # TODO figure out how to use GaussianRandomWalk and AdaptiveMetropolis
+        # problem - both algorithms add a sample from multivariate normal distribution
+        # centered around 0 with a covariance matrix to the existing sample
+        # -> result can go negative since its not a lognormal distribution, which breaks the simulation
+        # ideas how to fix
+        # get rid of some params - probably wont work since almost all of them are lognormal
+        # parse them to positive in forward model - resulting posterior distribution will be different/wrong
+        proposal = tda.GaussianRandomWalk(proposal_cov, adaptive=True, period=3, scaling=0.15)
 
         # sampling process
         samples = tda.sample(posterior, proposal, iterations=sample_count, n_chains=self.chains)
@@ -139,13 +163,16 @@ class TinyDAFlowWrapper():
             match param["type"]:
                 case "lognorm":
                     prior = sps.lognorm(s = bounds[1], scale = np.exp(bounds[0]))
+                    logging.info(f"Prior lognorm, mu={prior.mean()}, std={prior.std()}")
                 case "unif":
                     prior = sps.uniform(loc = bounds[0], scale = bounds[1] - bounds[0])
+                    logging.info(f"Prior uniform, a={prior.a}, b={prior.b}")
                 case "truncnorm":
                     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.truncnorm.html
                     a_trunc, b_trunc, mu, sigma = bounds
                     a, b = (a_trunc - mu) / sigma, (b_trunc - mu) / sigma
                     prior = sps.truncnorm(a, b, loc=mu, scale=sigma)
+                    logging.info(f"Prior truncated norm, a={prior.a}, b={prior.b}, mean={prior.mean()}, std={prior.std()}")
             priors.append(prior)
             prior_names.append(prior_name)
 
@@ -157,14 +184,15 @@ class TinyDAFlowWrapper():
         self.loglike = tda.GaussianLogLike(observed, cov)
 
     def forward_model(self, params):
+        # reject automatically if params go negative
+        if np.any(params <= 0):
+            logging.info("Invalid proposal, skipping...")
+            logging.info(params)
+            return np.zeros(self.observed_len)
+
         # if parallel sampling
         if self.parallel:
             # get idle flow solver
-            # TODO figure out why threads get stuck and no new idle threads show up
-            # when using self.pool.push(flow) - only 1 thread will run at a time
-            # when not using it - multiple threads, but no idle threads left
-            # reorder threads in pool?
-            # a blocking in some thread?
             while True:
                 if self.pool.has_idle.remote():
                     job = self.pool.get_idle.remote()
@@ -175,6 +203,8 @@ class TinyDAFlowWrapper():
                     break
                 time.sleep(2)
             # create new thread to pass params to it
+            logging.info("Passing params to flow")
+            logging.info(str(params))
             job = flow.set_parameters.remote(data_par=params)
             # wait to set params
             while job:
@@ -194,6 +224,8 @@ class TinyDAFlowWrapper():
             if res >= 0:
                 return data
         else:
+            logging.info("Passing params to flow")
+            logging.info(str(params))
             self.flow_wrapper.set_parameters(data_par=params)
             res, data = self.flow_wrapper.get_observations()
             if self.flow_wrapper.sim._config["conductivity_observe_points"]:
