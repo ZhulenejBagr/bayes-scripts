@@ -7,8 +7,6 @@ import scipy.stats as sps
 import numpy as np
 import logging
 import arviz as az
-import ray
-from ray.util.actor_pool import ActorPool
 
 from bp_simunek.simulation.measured_data import MeasuredData
 
@@ -18,7 +16,7 @@ class TinyDAFlowWrapper():
     Wrapper combining a flow123 instance into a tinyDA sampler
     """
 
-    def __init__(self, flow_wrapper, chains):
+    def __init__(self, flow_wrapper):
         self.flow_wrapper = flow_wrapper
         self.observed_data = MeasuredData(self.flow_wrapper.sim._config)
         self.observed_data.initialize()
