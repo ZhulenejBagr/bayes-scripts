@@ -1,6 +1,7 @@
 import os
 import subprocess
 import time
+import hashlib
 
 import logging
 import numpy as np
@@ -50,15 +51,24 @@ class Flow123dSimulation:
         self.sample_counter = -1
         self.sample_dir = Path(".")
         self.sample_output_dir = "output"
+        self.param_hash = ""
 
     def set_parameters(self, data_par):
         param_list = self._config["parameters"]
         assert(len(data_par) == len(param_list))
 
+        # init hasher object
+        hasher = hashlib.md5()
+
         for idx, param in enumerate(param_list):
+            # append every parameter to hasher's input
+            hasher.update(data_par[idx].tobytes())
             pname = param["name"]
             assert pname in self._config["hm_params"], pname + " not in hm_params"
             self._config["hm_params"][pname] = data_par[idx]
+
+        # hash into hex, only taking the first 16 chars
+        self.param_hash = hasher.hexdigest()[:16]
 
     def get_observations(self):
         try:
@@ -78,10 +88,24 @@ class Flow123dSimulation:
         """
 
         # create sample dir
-        self.sample_counter = self.sample_counter + 1
-        self.sample_dir = self.work_dir/("solver_" + str(config_dict["solver_id"]).zfill(2) +
-                                         "_sample_" + str(self.sample_counter).zfill(3))
+        #self.sample_counter = self.sample_counter + 1
+        #self.sample_dir = self.work_dir/("solver_" + str(config_dict["solver_id"]).zfill(2) +
+        #                             "_sample_" + str(self.sample_counter).zfill(3))
+
+        # use param hash as folder name
+        self.sample_dir = self.work_dir/(self.param_hash)
+        last_hash = self.param_hash
+        hasher = hashlib.md5(last_hash.encode("utf-8"))
+        # while loop to avoid hash collisions, just in case
+        while True:
+            if not self.sample_dir.exists():
+                break
+            new_hash = hasher.hexdigest()[:16]
+            hasher = hashlib.md5(new_hash.encode("utf-8"))
+            self.sample_dir = self.work_dir/(new_hash)
+
         self.sample_dir.mkdir(mode=0o775, exist_ok=True)
+        assert self.sample_dir.exists()
 
         logging.info("=========================== RUNNING CALCULATION " +
               "solver {} ".format(config_dict["solver_id"]).zfill(2) +

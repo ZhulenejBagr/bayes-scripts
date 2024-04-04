@@ -88,17 +88,3 @@ class Wrapper:
     def get_observations(self):
         res = self.sim.get_observations()
         return res
-
-@ray.remote
-class RemoteWrapper(Wrapper):
-    def __init__(data):
-        return
-
-    def set_observe_path(self, path):
-        return super().set_observe_path(path)
-
-    def set_parameters(self, data_par):
-        return super().set_parameters(data_par)
-
-    def get_observations(self):
-        return super().get_observations()
