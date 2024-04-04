@@ -25,7 +25,7 @@ def test_simulation3_with_tinyda():
 
     # tinyda + flow123 wrapper
     n_chains = 1
-    tinyda_wrapper = TinyDAFlowWrapper(wrap, chains=1)
+    tinyda_wrapper = TinyDAFlowWrapper(wrap)
 
     # sampling process
     sample_count = 5
@@ -35,7 +35,7 @@ def test_simulation3_with_tinyda():
     logging.info("\n%s", str(az.summary(idata)))
     save_idata_to_file(idata, filename="flow.sim3.idata")
 
-#@pytest.mark.skip
+@pytest.mark.skip
 def test_simulation11_with_tinyda():
     #ray.init(runtime_env={"working_dir": ROOT_DIR})
     os.chdir(script_dir)
@@ -46,15 +46,16 @@ def test_simulation11_with_tinyda():
 
     # tinyda + flow123 wrapper
     n_chains = 1
-    tinyda_wrapper = TinyDAFlowWrapper(wrap, n_chains)
+    tinyda_wrapper = TinyDAFlowWrapper(wrap)
 
     sample_count = 10
-    idata = tinyda_wrapper.sample(sample_count=sample_count)
+    idata = tinyda_wrapper.sample(sample_count=sample_count, chains=n_chains)
     assert idata
     assert idata["posterior"].sizes["draw"] == sample_count
     logging.info("\n%s", str(az.summary(idata)))
     save_idata_to_file(idata, filename="flow.sim11.idata")
 
+@pytest.mark.skip
 def test_simulation11_simplified_with_tinyda():
     #ray.init(runtime_env={"working_dir": ROOT_DIR})
     os.chdir(script_dir)
@@ -65,16 +66,16 @@ def test_simulation11_simplified_with_tinyda():
 
     # tinyda + flow123 wrapper
     n_chains = 1
-    tinyda_wrapper = TinyDAFlowWrapper(wrap, n_chains)
+    tinyda_wrapper = TinyDAFlowWrapper(wrap)
 
     sample_count = 10
-    idata = tinyda_wrapper.sample(sample_count=sample_count)
+    idata = tinyda_wrapper.sample(sample_count=sample_count, chains=n_chains)
     assert idata
     assert idata["posterior"].sizes["draw"] == sample_count
     logging.info("\n%s", str(az.summary(idata)))
     save_idata_to_file(idata, filename="flow.sim11.idata")
 
-@pytest.mark.skip
+#@pytest.mark.skip
 def test_simulation11_with_tinyda_parallel():
     os.chdir(script_dir)
     workdir = Path("test_workdir11").absolute()
@@ -83,11 +84,11 @@ def test_simulation11_with_tinyda_parallel():
     wrap.sim._config["measured_data_dir"] = os.path.join(script_dir, "../measured_data")
 
     # tinyda + flow123 wrapper
-    chains = 4
-    tinyda_wrapper = TinyDAFlowWrapper(wrap, chains)
+    n_chains = 4
+    tinyda_wrapper = TinyDAFlowWrapper(wrap)
 
     sample_count = 5
-    idata = tinyda_wrapper.sample(sample_count=sample_count)
+    idata = tinyda_wrapper.sample(sample_count=sample_count, chains=n_chains)
     assert idata
     assert idata["posterior"].sizes["draw"] == sample_count
     logging.info("\n%s", str(az.summary(idata)))
@@ -109,10 +110,10 @@ def sample11(sample_count=500, idata_name="flow_tinyda_1000.idata"):
     wrap.sim._config["measured_data_dir"] = os.path.join(script_dir, "../measured_data")
 
     # tinyda + flow123 wrapper
-    chains = 10
-    tinyda_wrapper = TinyDAFlowWrapper(wrap, chains)
+    n_chains = 10
+    tinyda_wrapper = TinyDAFlowWrapper(wrap)
 
-    idata = tinyda_wrapper.sample(sample_count=sample_count)
+    idata = tinyda_wrapper.sample(sample_count=sample_count, chains=n_chains)
     logging.info("\n%s", str(az.summary(idata)))
     save_idata_to_file(idata, filename=idata_name)
 
