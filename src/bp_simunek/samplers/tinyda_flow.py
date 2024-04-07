@@ -148,7 +148,8 @@ class TinyDAFlowWrapper():
             priors.append({
                 "name": prior_name,
                 "type": prior_type,
-                "dist": prior
+                "dist": prior,
+                "params": bounds
             })
 
         self.priors = priors
