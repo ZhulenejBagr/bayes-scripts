@@ -41,8 +41,9 @@ class TinyDAFlowWrapper():
         self.parallel = False
 
     def create_proposal_matrix(self):
-        cov_vector = np.empty(len(self.priors))
-        for idx, prior in enumerate(self.priors):
+        dists = [prior["dist"] for prior in self.priors]
+        cov_vector = np.empty(len(dists))
+        for idx, prior in enumerate(dists):
             if hasattr(prior, "std"):
                 cov_vector[idx] = np.power(prior.std(), 2)
             else:
@@ -65,7 +66,7 @@ class TinyDAFlowWrapper():
         cond_boreholes = []
         _, values = md.generate_measured_samples(boreholes, cond_boreholes)
         #self.setup_loglike(values, np.eye(len(values)))
-        self.setup_loglike(values, np.multiply(10, np.eye(len(values))))
+        self.setup_loglike(values, np.multiply(1000, np.eye(len(values))))
         self.observed_len = len(values)
 
         # combine into posterior
@@ -89,7 +90,9 @@ class TinyDAFlowWrapper():
         # not doing this causes all of the chains to start from the same spot
         # -> messes up the directory naming, simultaneous access to the same files
         # also adds pointless correlation and reduces coverage
-        prior_values = list(self.prior.rvs(chains))
+        prior_values = self.prior.rvs(chains)
+        if self.parallel:
+            prior_values = list(prior_values)
 
         # sampling process
         samples = tda.sample(posterior, proposal, sample_count, chains, prior_values)
@@ -110,35 +113,48 @@ class TinyDAFlowWrapper():
             file.writelines(obs_times)
 
         # check and save samples
-        idata = tda.to_inference_data(chain=samples, parameter_names=self.prior_names, burnin=tune)
+        idata = tda.to_inference_data(chain=samples, parameter_names=[prior["name"] for prior in self.priors], burnin=tune)
 
         return idata
 
     def setup_priors(self, config):
+        """
+        Prior setup for sampling. All dists are interpreted as normal distributions
+        and postprocessed into the proper distribution in the forward model.
+        Additional info is saved (type of dist, name) so that forward model knows
+        how to transform the individual parameters.
+        """
         priors = []
-        prior_names = []
         for param in config["parameters"]:
             prior_name = param["name"]
             bounds = param["bounds"]
-            match param["type"]:
+            prior_type = param["type"]
+            match prior_type:
                 case "lognorm":
-                    prior = sps.lognorm(s = bounds[1], scale = np.exp(bounds[0]))
-                    logging.info(f"Prior lognorm, mu={prior.mean()}, std={prior.std()}")
-                case "unif":
-                    prior = sps.uniform(loc = bounds[0], scale = bounds[1] - bounds[0])
-                    logging.info(f"Prior uniform, a={prior.a}, b={prior.b}")
+                    #prior = sps.lognorm(s = bounds[1], scale = np.exp(bounds[0]))
+                    mu, sigma = bounds
+                    prior = sps.norm(loc=mu, scale=sigma)
+                    logging.info("Prior lognorm, mu=%s, std=%s", prior.mean(), prior.std())
+                # unused as of now
+                #case "unif":
+                #    prior = sps.uniform(loc = bounds[0], scale = bounds[1] - bounds[0])
+                #    logging.info("Prior uniform, a=%s, b=%s", prior.a, prior.b)
                 case "truncnorm":
                     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.truncnorm.html
-                    a_trunc, b_trunc, mu, sigma = bounds
-                    a, b = (a_trunc - mu) / sigma, (b_trunc - mu) / sigma
-                    prior = sps.truncnorm(a, b, loc=mu, scale=sigma)
-                    logging.info(f"Prior truncated norm, a={prior.a}, b={prior.b}, mean={prior.mean()}, std={prior.std()}")
-            priors.append(prior)
-            prior_names.append(prior_name)
+                    #a, b = (a_trunc - mu) / sigma, (b_trunc - mu) / sigma
+                    #prior = sps.truncnorm(a, b, loc=mu, scale=sigma)
+                    _, _, mu, sigma = bounds
+                    prior = sps.norm(loc=mu, scale=sigma)
+                    logging.info("Prior truncated norm, a=%s, b=%s, mean=%s, std=%s", prior.a, prior.b, prior.mean(), prior.std())
+            priors.append({
+                "name": prior_name,
+                "type": prior_type,
+                "dist": prior,
+                "params": bounds
+            })
 
         self.priors = priors
-        self.prior_names = prior_names
-        self.prior = tda.CompositePrior(priors)
+        self.prior = tda.CompositePrior([prior["dist"] for prior in priors])
 
     def setup_loglike(self, observed, cov):
         self.loglike = tda.GaussianLogLike(observed, cov)
@@ -146,14 +162,34 @@ class TinyDAFlowWrapper():
     def forward_model(self, params):
         print(params)
         # reject automatically if params go negative
-        if np.any(params <= 0):
-            logging.info("Invalid proposal, skipping...")
-            logging.info(params)
-            return np.zeros(self.observed_len)
+        #if np.any(params <= 0):
+        #    logging.info("Invalid proposal, skipping...")
+        #    logging.info(params)
+        #    return np.zeros(self.observed_len)
+
+        # transform parameters via info from priors
+        logging.info("Input params:")
+        logging.info(params)
+
+        trans_params = []
+        for param, prior in zip(params, self.priors):
+            match prior["type"]:
+                case "lognorm":
+                    trans_param = np.exp(param)
+                case "truncnorm":
+                    a, b, mu, sigma = prior["params"]
+                    lower_bound = (a - mu) / sigma
+                    upper_bound = (b - mu) / sigma
+                    phi_a = sps.norm.cdf(lower_bound)
+                    phi_b = sps.norm.cdf(upper_bound)
+                    phi_param = sps.norm.cdf(param, loc=mu, scale=sigma)
+                    trans_param = sps.norm.ppf((phi_b - phi_a)*phi_param + phi_a)*sigma + mu
+
+            trans_params.append(trans_param)
 
         logging.info("Passing params to flow")
-        logging.info(params)
-        self.flow_wrapper.set_parameters(data_par=params)
+        logging.info(trans_params)
+        self.flow_wrapper.set_parameters(data_par=trans_params)
 
         start = time.time()
         res, data = self.flow_wrapper.get_observations()
