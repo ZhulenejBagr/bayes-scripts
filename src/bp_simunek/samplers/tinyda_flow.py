@@ -90,7 +90,9 @@ class TinyDAFlowWrapper():
         # not doing this causes all of the chains to start from the same spot
         # -> messes up the directory naming, simultaneous access to the same files
         # also adds pointless correlation and reduces coverage
-        prior_values = list(self.prior.rvs(chains))
+        prior_values = self.prior.rvs(chains)
+        if self.parallel:
+            prior_values = list(prior_values)
 
         # sampling process
         samples = tda.sample(posterior, proposal, sample_count, chains, prior_values)
