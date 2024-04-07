@@ -141,9 +141,10 @@ class TinyDAFlowWrapper():
                 #    logging.info("Prior uniform, a=%s, b=%s", prior.a, prior.b)
                 case "truncnorm":
                     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.truncnorm.html
-                    a_trunc, b_trunc, mu, sigma = bounds
-                    a, b = (a_trunc - mu) / sigma, (b_trunc - mu) / sigma
-                    prior = sps.truncnorm(a, b, loc=mu, scale=sigma)
+                    #a, b = (a_trunc - mu) / sigma, (b_trunc - mu) / sigma
+                    #prior = sps.truncnorm(a, b, loc=mu, scale=sigma)
+                    _, _, mu, sigma = bounds
+                    prior = sps.norm(loc=mu, scale=sigma)
                     logging.info("Prior truncated norm, a=%s, b=%s, mean=%s, std=%s", prior.a, prior.b, prior.mean(), prior.std())
             priors.append({
                 "name": prior_name,
@@ -176,7 +177,13 @@ class TinyDAFlowWrapper():
                 case "lognorm":
                     trans_param = np.exp(param)
                 case "truncnorm":
-                    trans_param = param
+                    a, b, mu, sigma = prior["params"]
+                    lower_bound = (a - mu) / sigma
+                    upper_bound = (b - mu) / sigma
+                    phi_a = sps.norm.cdf(lower_bound)
+                    phi_b = sps.norm.cdf(upper_bound)
+                    phi_param = sps.norm.cdf(param, loc=mu, scale=sigma)
+                    trans_param = sps.norm.ppf((phi_b - phi_a)*phi_param + phi_a)*sigma + mu
 
             trans_params.append(trans_param)
 
