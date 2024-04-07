@@ -132,7 +132,8 @@ class TinyDAFlowWrapper():
             match prior_type:
                 case "lognorm":
                     #prior = sps.lognorm(s = bounds[1], scale = np.exp(bounds[0]))
-                    prior = sps.norm(loc=bounds[0], scale=bounds[1])
+                    mu, sigma = bounds
+                    prior = sps.norm(loc=mu, scale=sigma)
                     logging.info("Prior lognorm, mu=%s, std=%s", prior.mean(), prior.std())
                 # unused as of now
                 #case "unif":
