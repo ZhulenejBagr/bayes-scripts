@@ -119,4 +119,4 @@ def sample11(sample_count=500, idata_name="flow_tinyda_1000.idata"):
 
 
 if __name__ == "__main__":#
-    sample11()
+    sample11(sample_count=1000)

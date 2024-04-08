@@ -66,7 +66,7 @@ class TinyDAFlowWrapper():
         cond_boreholes = []
         _, values = md.generate_measured_samples(boreholes, cond_boreholes)
         #self.setup_loglike(values, np.eye(len(values)))
-        self.setup_loglike(values, np.multiply(1000, np.eye(len(values))))
+        self.setup_loglike(values, np.multiply(100, np.eye(len(values))))
         self.observed_len = len(values)
 
         # combine into posterior
@@ -84,7 +84,7 @@ class TinyDAFlowWrapper():
         # ideas how to fix
         # get rid of some params - probably wont work since almost all of them are lognormal
         # parse them to positive in forward model - resulting posterior distribution will be different/wrong
-        proposal = tda.GaussianRandomWalk(proposal_cov, adaptive=True, period=3, scaling=0.15)
+        proposal = tda.GaussianRandomWalk(proposal_cov, adaptive=True, period=10, scaling=0.3)
 
         # sample from prior to give all chains a different starting point
         # not doing this causes all of the chains to start from the same spot
