@@ -104,7 +104,13 @@ def sample11(idata_name="flow_tinyda_1000.idata"):
     os.chdir(script_dir)
     observe_path = Path(script_dir, "../measured_data").absolute()
     template_dir = Path("templates", "test_workdir11").absolute()
-    work_dir = Path(ROOT_DIR, "output", "test11").absolute()
+    workdir = os.environ.get("SCRATCHDIR")
+    if workdir is None:
+        work_dir = Path(ROOT_DIR, "output", "test11").absolute()
+    else:
+        work_dir = Path(workdir).absolute()
+
+    logging.info("Using workdir %s", work_dir)
 
     # clean workdir
     if os.path.isdir(work_dir):
