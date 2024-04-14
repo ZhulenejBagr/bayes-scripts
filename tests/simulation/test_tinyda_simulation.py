@@ -25,7 +25,6 @@ def test_simulation11_with_tinyda():
     wrap.sim._config["measured_data_dir"] = os.path.join(script_dir, "../measured_data")
 
     # tinyda + flow123 wrapper
-    n_chains = 1
     tinyda_wrapper = TinyDAFlowWrapper(wrap)
 
     idata = tinyda_wrapper.sample()
