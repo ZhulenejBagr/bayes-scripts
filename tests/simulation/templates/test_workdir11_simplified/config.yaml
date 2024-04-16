@@ -38,6 +38,8 @@ parameters:
 #    type: lognorm
 #    bounds: [ 1.79175946922806, 0.1]
 
+sampler_parameters:
+
 # types of collected data
 collect_results:
   collect_vtk: False
