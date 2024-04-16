@@ -9,3 +9,5 @@ COPY requirements.txt /tmp/requirements.txt
 RUN python3 -m pip install -U pip && \
     pip3 install -r /tmp/requirements.txt  && \
     rm /tmp/requirements.txt
+
+RUN apt-get install sshpass
