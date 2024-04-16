@@ -1,17 +1,28 @@
-from pathlib import Path
 import os
 import time
-import shutil
-import tinyDA as tda
-import scipy.stats as sps
-import numpy as np
+import traceback
 import logging
+
+import numpy as np
+import scipy.stats as sps
 import arviz as az
 import ray
+import tinyDA as tda
+from tinyDA.sampler import ray_is_available
 
 from bp_simunek.simulation.measured_data import MeasuredData
 
-from tinyDA.sampler import ray_is_available
+
+NUMBER_OF_CHAINS_DEFAULT = 1
+FORCE_SEQUENTIAL_DEFAULT = False
+PROPOSAL_SCALING_DEFAULT = 0.2
+GAMMA_DEFAULT = 1.01
+ADAPTIVITY_DEFAULT = False
+ADAPTIVITY_PERIOD_DEFAULT = 10
+NOISE_STD_DEFAULT = 20
+IS_PARALLEL_DEFAULT = False
+SAMPLE_COUNT_DEFAULT = 10
+TUNE_COUNT_DEFAULT = 1
 
 @ray.remote
 class SharedTextVariable():
@@ -31,14 +42,117 @@ class TinyDAFlowWrapper():
     """
 
     def __init__(self, flow_wrapper):
+        # flow wrapper
         self.flow_wrapper = flow_wrapper
+        # measured data loader
         self.observed_data = MeasuredData(self.flow_wrapper.sim._config)
         self.observed_data.initialize()
-        self.worker_dirs = []
-        self.observed_len = -1
+        # better reference to config object
+        self.config = self.flow_wrapper.sim._config
+        # length of measured data
+        self.measured_len = -1
+        # time and parameters info of simulations
         self.observe_times = []
+        # reference to shared object for logging
         self.shared_text_objref = -1
-        self.parallel = False
+        # check for sampler config or set default params
+        sampler_config_key = "sampler_parameters"
+        if sampler_config_key not in self.config:
+            logging.warning("Missing sampler parameters, using default values for all")
+            self.set_default_sampler_params()
+        else:
+            try:
+                self.load_sampler_params(self.config[sampler_config_key])
+            except Exception:
+                logging.error("Failed to load sampler params from config, using default values for all")
+                logging.error(traceback.format_exc())
+                self.set_default_sampler_params()
+
+    def set_default_sampler_params(self):
+        self.is_parallel = IS_PARALLEL_DEFAULT
+        self.number_of_chains = NUMBER_OF_CHAINS_DEFAULT
+        self.force_sequential = FORCE_SEQUENTIAL_DEFAULT
+        self.proposal_scaling = PROPOSAL_SCALING_DEFAULT
+        self.gamma = GAMMA_DEFAULT
+        self.adaptive = ADAPTIVITY_DEFAULT
+        self.adaptivity_period = ADAPTIVITY_PERIOD_DEFAULT
+        self.noise_std = NOISE_STD_DEFAULT
+        self.sample_count = SAMPLE_COUNT_DEFAULT
+        self.tune_count = TUNE_COUNT_DEFAULT
+
+    def load_sampler_params(self, params):
+        # specify number of chains
+        chains_key = "chain_count"
+        if chains_key not in params:
+            logging.warning("Missing number of chains, defaulting to %d", NUMBER_OF_CHAINS_DEFAULT)
+            self.number_of_chains = NUMBER_OF_CHAINS_DEFAULT
+        else:
+            # TODO check if param is actually a valid number, not a string etc.
+            self.number_of_chains = params[chains_key]
+
+        # specify whether to force sequential sampling
+        force_seq_key = "force_sequential"
+        if force_seq_key not in params:
+            logging.warning("Force sequential not specified, defaulting to %s", str(FORCE_SEQUENTIAL_DEFAULT))
+            self.force_sequential = FORCE_SEQUENTIAL_DEFAULT
+        else:
+            # TODO check if value is boolean
+            self.force_sequential = params[force_seq_key]
+
+        # check if proposal params are specified
+        proposal_scaling_key = "proposal_scaling"
+        if proposal_scaling_key not in params:
+            logging.warning("Unspecified proposal scaling, defaulting to %f", PROPOSAL_SCALING_DEFAULT)
+            self.scaling = PROPOSAL_SCALING_DEFAULT
+        else:
+            self.scaling = params[proposal_scaling_key]
+
+        # adaptive proposal params
+        proposal_adaptive_key = "proposal_adaptive"
+        if proposal_adaptive_key in params:
+            self.adaptive = params[proposal_adaptive_key]
+
+            global_scaling_key = "proposal_gamma"
+            if global_scaling_key not in params:
+                logging.warning("Unknown proposal gamma, defaulting to %f", GAMMA_DEFAULT)
+                self.gamma = GAMMA_DEFAULT
+            else:
+                self.gamma = params[global_scaling_key]
+            
+            adaptive_period_key = "proposal_adaptivity_period"
+            if adaptive_period_key not in params:
+                logging.warning("Unknown adaptivity period, defaulting to %d", ADAPTIVITY_PERIOD_DEFAULT)
+                self.adaptivity_period = ADAPTIVITY_PERIOD_DEFAULT
+            else:
+                self.adaptivity_period = params[adaptive_period_key]
+
+        else:
+            logging.warning("Unspecified whether to adapt, defaulting to %s", str(ADAPTIVITY_DEFAULT))
+            self.adaptive = ADAPTIVITY_DEFAULT
+
+        # check for noise std
+        noise_std_key = "noise_std"
+        if noise_std_key not in params:
+            logging.info("Noise standard deviation unspecified, defaulting to %f", NOISE_STD_DEFAULT)
+            self.noise_std = NOISE_STD_DEFAULT
+        else:
+            self.noise_std = params[noise_std_key]
+
+        # get number of samples to sample
+        sample_count_key = "sample_count"
+        if sample_count_key not in params[sample_count_key]:
+            logging.warning("Number of samples not specified, defaulting to %d", SAMPLE_COUNT_DEFAULT)
+            self.sample_count = SAMPLE_COUNT_DEFAULT
+        else:
+            self.sample_count = params[sample_count_key]
+
+        # get length of tune
+        tune_count_key = "tune_count"
+        if tune_count_key not in params[tune_count_key]:
+            logging.warning("Length of tune not specified, defaulting to %d", TUNE_COUNT_DEFAULT)
+            self.tune_count = TUNE_COUNT_DEFAULT
+        else:
+            self.tune_count = params[tune_count_key]
 
     def create_proposal_matrix(self):
         dists = [prior["dist"] for prior in self.priors]
@@ -51,23 +165,32 @@ class TinyDAFlowWrapper():
                 raise Exception("Unsupported distribution, no 'std' attribute.")
         return np.multiply(np.eye(len(cov_vector)), cov_vector)
 
-    def sample(self, sample_count = 20, tune = 1, chains = 4) -> az.InferenceData:
-        self.parallel = chains > 1 and ray_is_available
-        if self.parallel:
+    def sample(self) -> az.InferenceData:
+        # check whether parallel sampling or not
+        self.is_parallel = self.number_of_chains > 1 and ray_is_available and not self.force_sequential
+
+        # setup shared text logging buffer if parallel sampling
+        if self.is_parallel:
             self.shared_text_objref = SharedTextVariable.remote()
 
         # setup priors from config of flow wrapper
-        self.setup_priors(self.flow_wrapper.sim._config)
+        self.setup_priors(self.config)
 
-        # setup likelihood
-        md = MeasuredData(self.flow_wrapper.sim._config)
+        # get measured data
+        md = MeasuredData(self.config)
         md.initialize()
+        # choose which boreholes to use
         boreholes = ["H1"]
+        # choose which borehole conductivities to use, empty list means none
         cond_boreholes = []
+        # get actual values
         _, values = md.generate_measured_samples(boreholes, cond_boreholes)
-        #self.setup_loglike(values, np.eye(len(values)))
-        self.setup_loglike(values, np.multiply(1000, np.eye(len(values))))
-        self.observed_len = len(values)
+        logging.info("Loading observed values:")
+        logging.info(values)
+
+        # setup loglike
+        self.setup_loglike(values, np.multiply(self.noise_std, np.eye(len(values))))
+        self.measured_len = len(values)
 
         # combine into posterior
         posterior = tda.Posterior(self.prior, self.loglike, self.forward_model)
@@ -77,28 +200,21 @@ class TinyDAFlowWrapper():
         logging.info(proposal_cov)
         # setup proposal
         #proposal = tda.IndependenceSampler(self.prior)
-        # TODO figure out how to use GaussianRandomWalk and AdaptiveMetropolis
-        # problem - both algorithms add a sample from multivariate normal distribution
-        # centered around 0 with a covariance matrix to the existing sample
-        # -> result can go negative since its not a lognormal distribution, which breaks the simulation
-        # ideas how to fix
-        # get rid of some params - probably wont work since almost all of them are lognormal
-        # parse them to positive in forward model - resulting posterior distribution will be different/wrong
-        proposal = tda.GaussianRandomWalk(proposal_cov, adaptive=True, period=3, scaling=0.15)
+        proposal = tda.GaussianRandomWalk(proposal_cov, self.scaling, self.adaptive, self.gamma, self.adaptivity_period)
 
         # sample from prior to give all chains a different starting point
         # not doing this causes all of the chains to start from the same spot
         # -> messes up the directory naming, simultaneous access to the same files
         # also adds pointless correlation and reduces coverage
-        prior_values = self.prior.rvs(chains)
-        if self.parallel:
+        prior_values = self.prior.rvs(self.number_of_chains)
+        if self.is_parallel:
             prior_values = list(prior_values)
 
         # sampling process
-        samples = tda.sample(posterior, proposal, sample_count, chains, prior_values)
+        samples = tda.sample(posterior, proposal, self.sample_count, self.number_of_chains, prior_values)
 
         # if parallel sampling - concat results into one list
-        if self.parallel:
+        if self.is_parallel:
             job = self.shared_text_objref.get_text.remote()
             ndone = job
             while ndone:
@@ -113,7 +229,7 @@ class TinyDAFlowWrapper():
             file.writelines(obs_times)
 
         # check and save samples
-        idata = tda.to_inference_data(chain=samples, parameter_names=[prior["name"] for prior in self.priors], burnin=tune)
+        idata = tda.to_inference_data(chain=samples, parameter_names=[prior["name"] for prior in self.priors], burnin=self.tune_count)
 
         return idata
 
@@ -196,7 +312,7 @@ class TinyDAFlowWrapper():
         end = time.time()
         elapsed = end - start
         string = str(params.tolist()) + " | " + str(elapsed) + "\n"
-        if self.parallel:
+        if self.is_parallel:
             job = self.shared_text_objref.append.remote(string)
             while job:
                 _, job = ray.wait([job])
@@ -204,8 +320,8 @@ class TinyDAFlowWrapper():
             self.observe_times.append(string)
 
 
-        if self.flow_wrapper.sim._config["conductivity_observe_points"]:
-            num = len(self.flow_wrapper.sim._config["conductivity_observe_points"])
+        if self.config["conductivity_observe_points"]:
+            num = len(self.config["conductivity_observe_points"])
             data = data[:-num]
         if res >= 0:
             return data

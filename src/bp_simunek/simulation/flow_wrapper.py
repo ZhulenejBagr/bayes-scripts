@@ -5,8 +5,6 @@ import sys
 import yaml
 from pathlib import Path
 
-import ray
-
 rep_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(rep_dir)
 
@@ -64,14 +62,9 @@ def setup_config(output_dir):
 
 
 class Wrapper:
-    def __init__(self, solver_id, output_dir: Path, config_dict=None):
-        self.initialize(solver_id, output_dir, config_dict)
-
-    def initialize(self, solver_id, output_dir: Path, config_dict=None):
-
+    def __init__(self, output_dir: Path, config_dict=None):
         if config_dict is None:
             config_dict = setup_config(output_dir)
-        config_dict["solver_id"] = solver_id
 
         clean = config_dict["clean_sample_dir"]
         self.sim = Flow123dSimulation(config_dict, clean=clean)

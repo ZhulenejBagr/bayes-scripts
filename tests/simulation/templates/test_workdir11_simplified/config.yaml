@@ -4,6 +4,9 @@ make_plots: False
 clean_sample_dir: True
 
 parameters:
+#  - name: storativity
+#    type: lognorm
+#    bounds: [-14.5662279378421, 2.0]
   - name: young_modulus
     type: lognorm
     bounds: [24.8176103991685, 0.5]
@@ -16,18 +19,26 @@ parameters:
   - name: init_stress_z
     type: lognorm
     bounds: [ 17.9098551201864, 0.3]
-  - name: perm_k0
-    type: lognorm
-    bounds: [ -48.8651125766410, 2.0]
-  - name: perm_eps
-    type: truncnorm
-    bounds : [1.1, 1000, 33, 9]
-  - name: perm_delta
-    type: lognorm
-    bounds: [ -36.8413614879047, 0.1]
-  - name: perm_gamma
-    type: lognorm
-    bounds: [ 1.79175946922806, 0.1]
+#  - name: init_pressure
+#    type: norm
+#    bounds: [ 100, 10 ]
+#  - name: perm_k0
+#    type: lognorm
+#    bounds: [ -44.9530895712128, 2.0]
+#  - name: perm_kr
+#    type: lognorm
+#    bounds: [ -43.7491167668869, 0.5]
+#  - name: perm_eps
+#    type: truncnorm
+#    bounds : [1.1, 1000, 33, 9]
+#  - name: perm_delta
+#    type: lognorm
+#    bounds: [ -36.8413614879047, 0.1]
+#  - name: perm_gamma
+#    type: lognorm
+#    bounds: [ 1.79175946922806, 0.1]
+
+sampler_parameters:
 
 # types of collected data
 collect_results:

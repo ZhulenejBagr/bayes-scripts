@@ -100,6 +100,7 @@ class Flow123dSimulation:
         while True:
             if not self.sample_dir.exists():
                 break
+            logging.warning("Hash collision detected in folder names, fixing")
             new_hash = hasher.hexdigest()[:16]
             hasher = hashlib.md5(new_hash.encode("utf-8"))
             self.sample_dir = self.work_dir/(new_hash)
@@ -107,9 +108,10 @@ class Flow123dSimulation:
         self.sample_dir.mkdir(mode=0o775, exist_ok=True)
         assert self.sample_dir.exists()
 
-        logging.info("=========================== RUNNING CALCULATION " +
-              "solver {} ".format(config_dict["solver_id"]).zfill(2) +
-              "sample {} ===========================".format(self.sample_counter).zfill(3))
+        #logging.info("=========================== RUNNING CALCULATION " +
+        #      "solver {} ".format(config_dict["solver_id"]).zfill(2) +
+        #      "sample {} ===========================".format(self.sample_counter).zfill(3))
+        logging.info("RUNNING SIMULATION\n")
         logging.info(self.sample_dir)
         os.chdir(self.sample_dir)
 
