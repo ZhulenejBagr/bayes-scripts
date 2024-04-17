@@ -140,7 +140,7 @@ class TinyDAFlowWrapper():
 
         # get number of samples to sample
         sample_count_key = "sample_count"
-        if sample_count_key not in params[sample_count_key]:
+        if sample_count_key not in params:
             logging.warning("Number of samples not specified, defaulting to %d", SAMPLE_COUNT_DEFAULT)
             self.sample_count = SAMPLE_COUNT_DEFAULT
         else:
@@ -148,7 +148,7 @@ class TinyDAFlowWrapper():
 
         # get length of tune
         tune_count_key = "tune_count"
-        if tune_count_key not in params[tune_count_key]:
+        if tune_count_key not in params:
             logging.warning("Length of tune not specified, defaulting to %d", TUNE_COUNT_DEFAULT)
             self.tune_count = TUNE_COUNT_DEFAULT
         else:
