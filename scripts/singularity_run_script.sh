@@ -1,4 +1,4 @@
 #!/bin/bash
 
 source venv/bin/activate
-python -m tests.simulation.test_tinyda_simulation
+python -m bp_simunek.scripts.mlda_sample
