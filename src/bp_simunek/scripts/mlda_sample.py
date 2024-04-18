@@ -24,7 +24,7 @@ def sample11(idata_name="flow_tinyda_1000.idata"):
     ray.init(_temp_dir=tmp_dir_symlink)
 
     os.chdir(script_dir)
-    observe_path = Path(script_dir, "../measured_data").absolute()
+    observe_path = Path(ROOT_DIR, "scripts", "sample_template").absolute()
     template_dir = Path(ROOT_DIR, "scripts", "sample_template").absolute()
     workdir = os.environ.get("SCRATCHDIR")
     if workdir is None:
