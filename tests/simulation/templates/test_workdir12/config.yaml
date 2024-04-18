@@ -13,9 +13,9 @@ parameters:
   - name: init_stress_y
     type: lognorm
     bounds: [ 16.2134058307626, 0.3]
-  - name: init_stress_z
-    type: lognorm
-    bounds: [ 17.9098551201864, 0.3]
+#  - name: init_stress_z
+#    type: lognorm
+#    bounds: [ 17.9098551201864, 0.3]
   - name: perm_k0
     type: lognorm
     bounds: [ -48.8651125766410, 2.0]
@@ -28,6 +28,31 @@ parameters:
   - name: perm_gamma
     type: lognorm
     bounds: [ 1.79175946922806, 0.1]
+
+sampler_parameters:
+  # how many samples to collect
+  sample_count: 5
+  # how many samples to scrap
+  tune_count: 1
+  # how many chains to run
+  chain_count: 1
+  # whether to force sequential sampling, even with chains > 1 and ray present
+  force_sequential: False
+  # standard deviation of noise function
+  noise_std: 50
+  # constant that multiplies prior's std to construct proposal std
+  proposal_scaling: 0.15
+  # whether to adapt scaling
+  proposal_adaptive: True
+  # how often to adapt scaling
+  proposal_adaptivity_period: 3
+  # adaptivity coefficient
+  proposal_gamma: 1.01
+  # whether to use MLDA or not
+  mlda: True
+  # number of MLDA levels
+  mlda_levels: 2
+
 
 # types of collected data
 collect_results:

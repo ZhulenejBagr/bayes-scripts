@@ -3,7 +3,7 @@ from pathlib import Path
 import logging
 import shutil
 
-import arviz as az
+#import arviz as az
 import pytest
 import ray
 
@@ -16,7 +16,7 @@ from bp_simunek.plotting.flow_plots import generate_all_flow_plots
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
 #@pytest.mark.skip
-def test_simulation11_with_tinyda():
+def test_simulation11():
     #ray.init(runtime_env={"working_dir": ROOT_DIR})
     os.chdir(script_dir)
     observe_path = Path(script_dir, "../measured_data").absolute()
@@ -46,71 +46,18 @@ def test_simulation11_with_tinyda():
     assert idata
     assert idata["posterior"].sizes["draw"] == tinyda_wrapper.sample_count
 
-    # print samplin summary
-    logging.info("\n%s", str(az.summary(idata)))
     # save results
     save_idata_to_file(idata, folder_path=work_dir, filename="flow.sim11.idata")
 
     # generate plots
     generate_all_flow_plots(idata, folder=work_dir)
 
-@pytest.mark.skip
-def test_simulation11_simplified_with_tinyda():
-    #ray.init(runtime_env={"working_dir": ROOT_DIR})
-    os.chdir(script_dir)
-    workdir = Path("test_workdir11_simplified").absolute()
-    solver_id = 42
-    wrap = Wrapper(solver_id, workdir)
-    wrap.sim._config["measured_data_dir"] = os.path.join(script_dir, "../measured_data")
-
-    # tinyda + flow123 wrapper
-    tinyda_wrapper = TinyDAFlowWrapper(wrap)
-
-    sample_count = 5
-    idata = tinyda_wrapper.sample()
-    assert idata
-    assert idata["posterior"].sizes["draw"] == sample_count
-    logging.info("\n%s", str(az.summary(idata)))
-    save_idata_to_file(idata, filename="flow.sim11.idata")
-
-@pytest.mark.skip
-def test_simulation11_with_tinyda_parallel():
-    os.chdir(script_dir)
-    workdir = Path("test_workdir11").absolute()
-    solver_id = 42
-    wrap = Wrapper(solver_id, workdir)
-    wrap.sim._config["measured_data_dir"] = os.path.join(script_dir, "../measured_data")
-
-    # tinyda + flow123 wrapper
-    tinyda_wrapper = TinyDAFlowWrapper(wrap)
-
-    sample_count = 5
-    idata = tinyda_wrapper.sample(sample_count, False)
-    assert idata
-    assert idata["posterior"].sizes["draw"] == sample_count
-    logging.info("\n%s", str(az.summary(idata)))
-    save_idata_to_file(idata, filename="flow.sim11.idata")
-
-@pytest.mark.skip
-def sample11(idata_name="flow_tinyda_1000.idata"):
-    # probably not the best solution
-    # 107 char limit for socket path
-    tmp_dir_symlink = os.path.join(os.path.expanduser("~"), ".r")
-    logging.info(tmp_dir_symlink)
-    if not os.path.islink(tmp_dir_symlink):
-        raise Exception("Missing symlink for Ray temp storage")
-    ray.init(_temp_dir=tmp_dir_symlink)
-
+#@pytest.mark.skip
+def test_simulation12_mlda():
     os.chdir(script_dir)
     observe_path = Path(script_dir, "../measured_data").absolute()
-    template_dir = Path("templates", "test_workdir11").absolute()
-    workdir = os.environ.get("SCRATCHDIR")
-    if workdir is None:
-        work_dir = Path(ROOT_DIR, "output", "test11").absolute()
-    else:
-        work_dir = Path(workdir).absolute()
-
-    logging.info("Using workdir %s", work_dir)
+    template_dir = Path("templates", "test_workdir12").absolute()
+    work_dir = Path(ROOT_DIR, "output", "test12").absolute()
 
     # clean workdir
     if os.path.isdir(work_dir):
@@ -135,15 +82,10 @@ def sample11(idata_name="flow_tinyda_1000.idata"):
     assert idata
     assert idata["posterior"].sizes["draw"] == tinyda_wrapper.sample_count
 
-    # print samplin summary
-    logging.info("\n%s", str(az.summary(idata)))
     # save results
-    idata_name = f"{tinyda_wrapper.number_of_chains}x{tinyda_wrapper.sample_count}_randomwalk_2.idata"
-    save_idata_to_file(idata, folder_path=work_dir, filename=idata_name)
+    save_idata_to_file(idata, folder_path=work_dir, filename="flow.sim12.idata")
 
     # generate plots
     generate_all_flow_plots(idata, folder=work_dir)
 
 
-if __name__ == "__main__":#
-    sample11()

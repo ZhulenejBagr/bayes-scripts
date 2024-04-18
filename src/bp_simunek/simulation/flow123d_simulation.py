@@ -297,14 +297,18 @@ class Flow123dSimulation:
 
 
     def prepare_mesh(self, config_dict, cut_tunnel):
-        mesh_name = config_dict["geometry"]["mesh_name"]
+        if config_dict["sampler_parameters"]["mlda"]:
+            level = config_dict["sampler_parameters"]["level"]
+            mesh_name = config_dict["geometry"]["mesh_name"][level]
+        else:
+            mesh_name = config_dict["geometry"]["mesh_name"]
+    
         if cut_tunnel:
             mesh_name = mesh_name + "_cut"
         # mesh_file = mesh_name + ".msh"
         # mesh_healed = mesh_name + "_healed.msh"
         mesh_healed = mesh_name + ".msh"
-        print(mesh_healed)
-
+        logging.info(mesh_healed)
         # suppose that the mesh was created/copied during preprocess
         print(os.path.join(config_dict["common_files_dir"]))
         print(mesh_healed)

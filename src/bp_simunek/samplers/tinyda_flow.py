@@ -2,6 +2,7 @@ import os
 import time
 import traceback
 import logging
+from functools import partial
 
 import numpy as np
 import scipy.stats as sps
@@ -23,6 +24,8 @@ NOISE_STD_DEFAULT = 20
 IS_PARALLEL_DEFAULT = False
 SAMPLE_COUNT_DEFAULT = 10
 TUNE_COUNT_DEFAULT = 1
+MLDA_DEFAULT = False
+MLDA_LEVELS_DEFAULT = 2
 
 @ray.remote
 class SharedTextVariable():
@@ -79,6 +82,8 @@ class TinyDAFlowWrapper():
         self.noise_std = NOISE_STD_DEFAULT
         self.sample_count = SAMPLE_COUNT_DEFAULT
         self.tune_count = TUNE_COUNT_DEFAULT
+        self.mlda = MLDA_DEFAULT
+        self.levels = MLDA_LEVELS_DEFAULT
 
     def load_sampler_params(self, params):
         # specify number of chains
@@ -154,6 +159,23 @@ class TinyDAFlowWrapper():
         else:
             self.tune_count = params[tune_count_key]
 
+        # check if using MLDA
+        mlda_key = "mlda"
+        if mlda_key not in params:
+            logging.warning("MLDA not specified, defaulting to %d", MLDA_DEFAULT)
+            self.mlda = MLDA_DEFAULT
+        else:
+            self.mlda = params[mlda_key]
+
+        if self.mlda:
+             # check for number of mlda levels
+            mlda_levels_key = "mlda_levels"
+            if mlda_levels_key not in params:
+                logging.warning("Number of MLDA levels not specified, defaulting to %d", MLDA_LEVELS_DEFAULT)
+                self.mlda_levels = MLDA_LEVELS_DEFAULT
+            else:
+                self.mlda_levels = params[mlda_levels_key]
+
     def create_proposal_matrix(self):
         dists = [prior["dist"] for prior in self.priors]
         cov_vector = np.empty(len(dists))
@@ -193,11 +215,19 @@ class TinyDAFlowWrapper():
         self.measured_len = len(values)
 
         # combine into posterior
-        posterior = tda.Posterior(self.prior, self.loglike, self.forward_model)
-
+        # if using mlda, use one mesh per model
+        if not self.mlda:
+            posteriors = tda.Posterior(self.prior, self.loglike, self.forward_model)
+        else:
+            self.flow_wrapper.set_mlda_level(0)
+            posteriors = []
+            for level in np.arange(self.mlda_levels):
+                logging.info(level)
+                forward_model = partial(self.forward_model_mlda, level=level)
+                posterior_level = tda.Posterior(self.prior, self.loglike, forward_model)
+                posteriors.append(posterior_level)
         # setup proposal covariance matrix (for random gaussian walk & adaptive metropolis)
         proposal_cov = self.create_proposal_matrix()
-        logging.info(proposal_cov)
         # setup proposal
         #proposal = tda.IndependenceSampler(self.prior)
         proposal = tda.GaussianRandomWalk(proposal_cov, self.scaling, self.adaptive, self.gamma, self.adaptivity_period)
@@ -211,7 +241,7 @@ class TinyDAFlowWrapper():
             prior_values = list(prior_values)
 
         # sampling process
-        samples = tda.sample(posterior, proposal, self.sample_count, self.number_of_chains, prior_values)
+        samples = tda.sample(posteriors, proposal, self.sample_count, self.number_of_chains, prior_values, 1)
 
         # if parallel sampling - concat results into one list
         if self.is_parallel:
@@ -325,3 +355,8 @@ class TinyDAFlowWrapper():
             data = data[:-num]
         if res >= 0:
             return data
+
+    def forward_model_mlda(self, params, level):
+        self.flow_wrapper.set_mlda_level(level)
+        logging.info("Setting sampler to level %i", level)
+        return self.forward_model(params)

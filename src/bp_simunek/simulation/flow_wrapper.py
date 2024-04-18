@@ -4,6 +4,7 @@ import os
 import sys
 import yaml
 from pathlib import Path
+import logging
 
 rep_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(rep_dir)
@@ -71,6 +72,9 @@ class Wrapper:
 
     def set_observe_path(self, path):
         self.sim._config["measured_data_dir"] = path
+
+    def set_mlda_level(self, level=0):
+        self.sim._config["sampler_parameters"]["level"] = level
 
     def set_parameters(self, data_par):
         # conductivity = trans.normal_to_lognormal(data_par[0])
