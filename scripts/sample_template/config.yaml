@@ -41,13 +41,13 @@ sampler_parameters:
   # standard deviation of noise function
   noise_std: 50
   # constant that multiplies prior's std to construct proposal std
-  proposal_scaling: 0.1
+  proposal_scaling: 0.5
   # whether to adapt scaling
   proposal_adaptive: True
   # how often to adapt scaling
-  proposal_adaptivity_period: 5
+  proposal_adaptivity_period: 10
   # adaptivity coefficient
-  proposal_gamma: 1.05
+  proposal_gamma: 1.1
   # whether to use MLDA or not
   mlda: True
   # number of MLDA levels
