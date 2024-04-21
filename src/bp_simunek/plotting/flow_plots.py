@@ -51,7 +51,7 @@ def generate_all_flow_plots(idata, folder):
         24.8176103991685,
         17.6221730477346,
         16.2134058307626,
-        17.9098551201864,
+        #17.9098551201864,
         -48.8651125766410,
         33,
         -36.8413614879047,
@@ -62,12 +62,13 @@ def generate_all_flow_plots(idata, folder):
         0.5,
         0.3,
         0.3,
-        0.3,
+        #0.3,
         2.0,
         9,
         0.1,
         0.1
     ]
+
     for x, axrow in enumerate(axes):
         axrow_len = len(axrow)
         for y, ax in enumerate(axrow):
@@ -115,7 +116,7 @@ def generate_all_flow_plots(idata, folder):
 
 
 if __name__ == "__main__":
-    idata_name = "10x1000_randomwalk_0.idata"
+    idata_name = "10x500_mlda_0.idata"
     idata = read_idata_from_file(idata_name)
     folder_path = os.path.join(ROOT_DIR, "data", idata_name.split(".")[0])
     generate_all_flow_plots(idata, folder_path)
