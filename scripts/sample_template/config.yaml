@@ -31,7 +31,7 @@ parameters:
 
 sampler_parameters:
   # how many samples to collect
-  sample_count: 500
+  sample_count: 1000
   # how many samples to scrap
   tune_count: 1
   # how many chains to run
@@ -41,7 +41,7 @@ sampler_parameters:
   # standard deviation of noise function
   noise_std: 50
   # constant that multiplies prior's std to construct proposal std
-  proposal_scaling: 0.5
+  proposal_scaling: 0.05
   # whether to adapt scaling
   proposal_adaptive: True
   # how often to adapt scaling
