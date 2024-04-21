@@ -14,7 +14,7 @@ from definitions import ROOT_DIR
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
-def sample11(idata_name="flow_tinyda_1000.idata"):
+def sample11():
     # probably not the best solution
     # 107 char limit for socket path
     tmp_dir_symlink = os.path.join(os.path.expanduser("~"), ".r")
