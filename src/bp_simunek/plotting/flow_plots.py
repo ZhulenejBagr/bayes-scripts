@@ -72,6 +72,8 @@ def generate_all_flow_plots(idata, folder):
         axrow_len = len(axrow)
         for y, ax in enumerate(axrow):
             idx = x * axrow_len + y
+            if idx >= len(idata["posterior"]):
+                continue
             if idx % axrow_len == 0:
                 ax.set_ylabel("Hustota pravděpodobnosti", fontsize=15)
             if idx // axrow_len == 1:
