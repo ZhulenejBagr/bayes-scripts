@@ -27,12 +27,17 @@ source venv/bin/activate
 cd tests/common
 pytest test_common.py
 ```
-
-# Run tinyDA sample script
-Open container, activate venv, run script:
+# Setup Singularity environment
+Build image from existing docker image and enter it:
 ```
-./bin/fterm
-source venv/bin/activate
-./bin/run_tinyda_sample.sh
+./bin/fterm_sing
+exit
+```
 
+# Run MLDA sampling on Metacentrum
+Log into Metacentrum, cd to repo:
+
+(Change params in ./scripts/sample_template/config.yaml)
+```
+qsub ./scripts/pbs_singularity_shell.sh
 ```
