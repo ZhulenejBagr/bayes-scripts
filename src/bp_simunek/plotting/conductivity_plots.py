@@ -12,6 +12,8 @@ from scipy.stats import multivariate_normal, gaussian_kde, norm
 
 import src.bp_simunek.samplers.idata_tools as tools
 from src.bp_simunek.plotting.plotting_tools import graphs_path, save_plot
+from src.bp_simunek.samplers.idata_tools import read_idata_from_file
+from src.bp_simunek.plotting.ds_plots import density_scatter
 
 def plot_pair_custom(
         idata: InferenceData,
@@ -258,6 +260,8 @@ def plot_all(
 
 def plot_posterior_with_prior_compare(
         idata_list: List[InferenceData],
+        names: List[str],
+        prior_data,
         filename: str = "posterior_prior_plot_compare.pdf",
         folder_path: str = graphs_path(),
         merge_chains: bool = False,
@@ -266,15 +270,21 @@ def plot_posterior_with_prior_compare(
         analytic_cov: npt.NDArray = np.array([[4, -2], [-2, 4]])) -> None:
 
     fig, ax = plt.subplots(2, 2)
-    names = ["MH", "Custom MH", "DEMZ", "NUTS"]
     fig.set_figwidth(16)
     fig.set_figheight(9)
     for j in range(4):
         idata = idata_list[j]
         current_ax = ax[j // 2][j % 2]
-        posterior_data = idata["posterior"]["U"].to_numpy()
-        prior_data = idata["prior"]["U"].to_numpy()
+        current_ax.set_xlabel("Hodnota parametru")
+        current_ax.set_ylabel("Pravděpodobnostní hustota")
+        if "U" in idata["posterior"]:
+            posterior_data = idata["posterior"]["U"].to_numpy()
+        else:
+            xdata = idata["posterior"]["U_0"].to_numpy()
+            ydata = idata["posterior"]["U_1"].to_numpy()
+            posterior_data = np.stack([xdata, ydata], axis=-1)
 
+        print(posterior_data.shape)
         n_chains = posterior_data.shape[0]
 
         linestyles = ["solid", "dotted", "dashed", "dashdot"]
@@ -284,7 +294,7 @@ def plot_posterior_with_prior_compare(
         current_ax.set_xlim([-7.5, 15])
         current_ax.set_ylim([0, 1])
 
-        fig.suptitle("Porovnání metod vzorkování")
+        fig.suptitle("Porovnání implementací")
 
         for i in range(2):
             lower_bound = np.min((np.min(posterior_data[:, :, i], axis=None), np.min(prior_data[:, :, i], axis=None)))
@@ -324,121 +334,101 @@ def plot_posterior_with_prior_compare(
     # close figure
     plt.close()
 
-def plot_pair_custom_compare(
-        idata_list: List[InferenceData],
-        filename: str = "posterior_prior_pair_plot_compare.pdf",
-        folder_path: str = graphs_path()) -> None:
-    wrl = [1, 2, 14, 1, 3, 1, 2, 14, 1]
-    fig, ax = plt.subplots(nrows=2, ncols=9, gridspec_kw={'width_ratios': wrl})
-    fig.set_figwidth(16)
-    fig.set_figheight(9)
-    names = ["MH", "Custom MH", "DEMZ", "NUTS"]
+def pair_plot_compare():
+    idata_paths_standard = [
+        "standard.custom_MH.idata",
+        "regular.MH.idata",
+        "tinyda.standard.idata",
+        "tinyda_randomwalk.standard.idata"
+    ]
 
-    for j in range(4):
-        # get values from inference data
-        idata = idata_list[j]
-        x_data = idata["posterior"]["U"][:, :, 0]
-        y_data = idata["posterior"]["U"][:, :, 1]
-        log_likelihood = idata["log_likelihood"]["G"]
-        prior = idata["prior"]["U"]
-        prior_likelihood = idata["prior"]["likelihood"]
+    idata_paths_offset = [
+        "offset.custom_MH.idata",
+        "offset.MH.idata",
+        "tinyda.offset.idata",
+        "tinyda_randomwalk.offset.idata"
+    ]
 
-        # change to regular likelyhood
-        #log_likelihood = np.exp(log_likelihood)
+    names = ["PyMC MH", "Custom MH", "tinyDA IS", "tinyDA RW"]
+    idata_sets = [idata_paths_standard, idata_paths_offset]
+    filenames = ["regular", "offset"]
+    axlims = [[(0, 10), (0, 11)], [(0, 15), (0, 16)]]
+    for id, dataset in enumerate(idata_sets):
+        lim = axlims[id]
+        fig, axes = plt.subplots(2, 2)
+        fig.suptitle("Porovnání implementací")
+        fig.set_figheight(9)
+        fig.set_figwidth(16)
+        prior = read_idata_from_file(dataset[1])["prior"]["U"]
+        prior_x = prior[:, :, 0].to_numpy().reshape(-1)
+        prior_y = prior[:, :, 1].to_numpy().reshape(-1)
 
-        # prior data
-        x_prior = prior[:, :, 0]
-        y_prior = prior[:, :, 1]
+        for idx, idata_path in enumerate(dataset):
+            ax = axes[idx // 2, idx % 2]
+            ax.set_xlim(*lim[0])
+            ax.set_ylim(*lim[1])
+            idata = read_idata_from_file(idata_path)
+            if "U_0" in idata["posterior"]:
+                x = idata["posterior"]["U_0"]
+                y = idata["posterior"]["U_1"]
+            else:
+                x = idata["posterior"]["U"][:, :, 0]
+                y = idata["posterior"]["U"][:, :, 1] 
+            x = x.to_numpy().squeeze()
+            y = y.to_numpy().squeeze()
+            
+            if x.ndim > 1:
+                x = x.reshape(-1)
+            if y.ndim > 1:
+                y = y.reshape(-1)
 
-        # posterior colormap
-        posterior_colormap = plt.get_cmap('binary')
-        posterior_norm = Normalize(vmin=np.min(log_likelihood), vmax=np.max(log_likelihood))
-        posterior_sm = ScalarMappable(cmap=posterior_colormap, norm=posterior_norm)
-        posterior_sm.set_array([])
+            density_scatter(prior_x, prior_y, ax, is_prior=True)
+            density_scatter(x, y, ax, is_prior=False)
 
-        # prior colormap
-        prior_colormap = plt.get_cmap('Reds')
-        prior_norm = Normalize(vmin=np.min(prior_likelihood), vmax=np.max(prior_likelihood))
-        prior_sm = ScalarMappable(cmap=prior_colormap, norm=prior_norm)
-        prior_sm.set_array([])
+            xc = np.linspace(0, lim[0][1], 100000)
+            yc = np.log(25 * np.exp(xc) / (2 * np.exp(xc) - 75))
+            contour, = ax.plot(xc, yc, color="red")
+            ax.legend([contour], ["Naměřená data"])
+            ax.set_title(names[idx])
+            ax.set_xlabel("Vodivost U_0")
+            ax.set_ylabel("Vodivost U_1")
+        
+        save_plot(f"plot_pair_compare_{filenames[id]}.pdf", fig=fig)
+        save_plot(f"plot_pair_compare_{filenames[id]}.png", fig=fig)
+def posterior_plot_compare():
+    idata_paths_standard = [
+        "standard.custom_MH.idata",
+        "regular.MH.idata",
+        "tinyda.standard.idata",
+        "tinyda_randomwalk.standard.idata"
+    ]
 
-        left_ax = ax[j // 2][5 * (j % 2)]
-        middle_ax = ax[j // 2][5 * (j % 2) + 2]
-        right_ax = ax[j // 2][5 * (j % 2) + 3]
+    idata_paths_offset = [
+        "offset.custom_MH.idata",
+        "offset.MH.idata",
+        "tinyda.offset.idata",
+        "tinyda_randomwalk.offset.idata"
+    ]
 
-        middle_ax.set_title(f"{names[j]}")
+    idata_sets = [idata_paths_standard, idata_paths_offset]
+    filenames = ["regular", "offset"]
+    axlims = [(0, 11), (0, 16)]
+    names = ["PyMC MH", "Custom MH", "tinyDA IS", "tinyDA RW"]
+    analytic_means = [np.array([5, 3]), np.array([8, 6])]
+    analyic_covs = [
+        np.array([[4, -2], [-2, 4]]),
+        np.array([[16, -2], [-2, 16]])
+    ]
 
-        # plot prior
-        middle_ax.scatter(
-            x_prior,
-            y_prior,
-            c=prior_likelihood,
-            cmap=prior_colormap,
-            label="Prior",
-            s=6,
-            alpha=0.15
-        )
-
-        # plot posterior
-        middle_ax.scatter(
-            x_data,
-            y_data,
-            c=log_likelihood,
-            cmap=posterior_colormap,
-            label="Posterior",
-            s=6,
-            alpha=0.05
-        )
-
-        # fix axis limits
-        middle_ax.set_xlim([-5, 15])
-        middle_ax.set_ylim([-7.5, 12.5])
-
-        # add colorbars and legend
-        fig.colorbar(posterior_sm, label="Posterior PDF", cax=left_ax, format='%.0e')
-
-        fig.colorbar(prior_sm, label="Prior PDF", cax=right_ax, format='%.0e')
-        middle_ax.legend()
-
-    # hide plots to avoid clumping
-    for x in [0, 1]:
-        for y in [1, 4, 6]:
-            ax[x, y].axis("off")
-    # fix fontsize of colorbars
-    for x in [0, 1]:
-        for y in [0, 5]:
-            ax[x, y].tick_params(labelsize=8)
-
-
-    # save plot to file
-    save_plot(folder_path=folder_path, filename=filename)
-
-    # close figure
-    plt.close()
-
-def plot_idata_sets(prefix: str = "regular") -> None:
-    methods = ["NUTS", "DEMZ", "MH"]
-    idata_paths = [f"{prefix}.{method}.idata" for method in methods]
-    for index, path in enumerate(idata_paths):
-        idata = tools.read_idata_from_file(filename=path)
-        plot_all(idata, folder_path=os.path.join(graphs_path(), prefix, methods[index]))
-
-def compare_posterior_with_prior(
-        filename: str = "posterior_prior_plot_compare.pdf",
-        analytic: bool = True,
-        prefix: str = "standard") -> None:
-    idata_names = ["MH", "custom_MH", "DEMZ", "NUTS"]
-    idata_list = [tools.read_idata_from_file(f"{prefix}.{name}.idata") for name in idata_names]
-    plot_posterior_with_prior_compare(idata_list, merge_chains=True, analytic=analytic, filename=filename)
-
-def compare_pair_plot_custom(
-        filename: str = "posterior_prior_pair_plot_compare.pdf",
-        prefix: str = "standard") -> None:
-    idata_names = ["MH", "custom_MH", "DEMZ", "NUTS"]
-    idata_list = [tools.read_idata_from_file(f"{prefix}.{name}.idata") for name in idata_names]
-    plot_pair_custom_compare(idata_list, filename=filename)
+    for id, dataset in enumerate(idata_sets):
+        lim = axlims[id]
+        fig, axes = plt.subplots(2, 2)
+        fig.set_figheight(9)
+        fig.set_figwidth(16)
+        prior = read_idata_from_file(dataset[1])["prior"]["U"]
+        idatas = [read_idata_from_file(dataset[i]) for i in range(len(dataset))]
+        plot_posterior_with_prior_compare(idatas, names, prior, f"posterior_compare_{filenames[id]}.pdf", merge_chains=True, analytic_mean=analytic_means[id], analytic_cov=analyic_covs[id])
 
 if __name__ == "__main__":
-    compare_pair_plot_custom(filename="posterior_prior_pair_plot_compare_offset.pdf", prefix="offset")
-    compare_pair_plot_custom(filename="posterior_prior_pair_plot_compare_offset.png", prefix="offset")
-    compare_posterior_with_prior(filename="posterior_with_prior_compare_offset.pdf", prefix="offset")
+    pair_plot_compare()
+    posterior_plot_compare()
