@@ -4,7 +4,7 @@ import tinyDA as tda
 import numpy.typing as npt
 
 from arviz import InferenceData, summary
-from src.bp_simunek.plotting.conductivity_plots import plot_pair_custom
+from bp_simunek.samplers.idata_tools import save_idata_to_file
 
 def sample(
         samples: int = 10000,
@@ -28,8 +28,7 @@ def sample(
         @staticmethod
         def loglike(data):
             obs_operator = CustomLikelihood.noise_distribution.logpdf(data - CustomLikelihood.observed)
-            prior_likelihood = prior.logpdf(CustomLikelihood.params)
-            likelihood = obs_operator + prior_likelihood
+            likelihood = obs_operator
             return likelihood
 
         observed = -1e-3
@@ -40,11 +39,14 @@ def sample(
             return -1 / 80  * (3 / np.exp(params[0]) + 1 / np.exp(params[1]))
 
     # combine into posterior
+    #prior = multivariate_normal(mean=prior_mean, cov=prior_cov)
+    #forward_model = lambda params: -1 / 80  * (3 / np.exp(params[0]) + 1 / np.exp(params[1]))
+    #likelihood = lambda data: tda.GaussianLogLike(data, covariance=-1e-3)
     posterior = tda.Posterior(prior, CustomLikelihood, CustomLikelihood.forward_model)
 
     # proposal
-    #proposal = tda.GaussianRandomWalk(np.eye(2, 2), scaling=1, adaptive=False)
-    proposal = tda.IndependenceSampler(prior)
+    proposal = tda.GaussianRandomWalk(prior.cov, scaling=0.2, adaptive=True)
+    #proposal = tda.IndependenceSampler(prior)
 
     # sample distribution
     total_samples = tune + samples
@@ -55,3 +57,9 @@ def sample(
     
 
     return idata
+
+if __name__ == "__main__":
+    idata_standard = sample(tune=10000)
+    idata_offset = sample(tune=10000, prior_mean=np.array([8, 6]), prior_cov=np.array([[16, -2], [-2, 16]]))
+    save_idata_to_file(idata_standard, "tinyda_randomwalk.standard.idata")
+    save_idata_to_file(idata_offset, "tinyda_randomwalk.offset.idata")

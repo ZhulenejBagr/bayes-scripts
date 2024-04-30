@@ -45,10 +45,11 @@ def metropolis(
     #factor = np.sqrt(np.linalg.det(adj_cov))
 
     # sampling process
+    total = 0
     accepted = 0
     current = prior_mean
     current_operator = noise_operator(current)
-    while accepted < total_samples:
+    while total < total_samples:
         # get U candidate sample
         candidate = candidate_sample(current)
         candidate_operator = noise_operator(candidate)
@@ -70,10 +71,10 @@ def metropolis(
             current = candidate
             current_operator = candidate_operator
             accepted += 1
-            print(accepted)
         else:
-            continue
-
+            sampled["U"] = np.concatenate((sampled["U"], current.reshape(1, 2)), axis=0)
+            sampled["G"] = np.append(sampled["G"], current_operator)
+        total += 1
     # remove burn in from samples
     sampled["U"] = sampled["U"][tune:]
     sampled["G"] = sampled["G"][tune:]
@@ -108,16 +109,17 @@ def metropolis(
     return idata
 
 def sample_standard():
-    idata = metropolis(tune=20000, samples=10000)
+    idata = metropolis(tune=5000, samples=40000)
     save_idata_to_file(idata, filename="standard.custom_MH.idata")
 
 def sample_offset():
     idata = metropolis(
-        tune=20000,
-        samples=10000,
-        prior_mean = np.array([7, 5]),
-        prior_sigma = np.array([[12, -6],[-6, 12]]))
+        tune=5000,
+        samples=40000,
+        prior_mean = np.array([8, 6]),
+        prior_sigma = np.array([[16, -2],[-2, 16]]))
     save_idata_to_file(idata, filename="offset.custom_MH.idata")
 
 if __name__ == "__main__":
+    sample_standard()
     sample_offset()
