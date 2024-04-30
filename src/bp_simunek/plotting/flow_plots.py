@@ -34,7 +34,7 @@ def plot_pressures(idata, exp, times):
 
 
 def generate_all_flow_plots(idata, folder):
-    az.plot_pair(idata)
+    az.plot_pair(idata, kind="kde")
     save_plot("pair_plot.pdf", folder_path=folder)
     az.plot_trace(idata)
     save_plot("trace_plot.pdf", folder_path=folder)
@@ -117,6 +117,7 @@ def generate_all_flow_plots(idata, folder):
 
 if __name__ == "__main__":
     idata_name = "10x500_mlda_0.idata"
-    idata = read_idata_from_file(idata_name)
-    folder_path = os.path.join(ROOT_DIR, "data", idata_name.split(".")[0])
+    folder_path = os.path.join(ROOT_DIR, "data", "job_21453475.meta-pbs.metacentrum.cz")
+    #folder_path = os.path.join(ROOT_DIR, "data", idata_name.split(".")[0])
+    idata = read_idata_from_file(idata_name, folder_path)
     generate_all_flow_plots(idata, folder_path)
