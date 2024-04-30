@@ -4,6 +4,9 @@ make_plots: False
 clean_sample_dir: True
 
 parameters:
+  - name: storativity
+    type: lognorm
+    bounds: [-16.4340685618576, 2.0]
   - name: young_modulus
     type: lognorm
     bounds: [24.8176103991685, 0.5]
