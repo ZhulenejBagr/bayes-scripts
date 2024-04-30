@@ -45,7 +45,7 @@ def generate_all_flow_plots(idata, folder):
     #save_plot("density_plot.pdf", folder_path=folder)
 
 
-    axes = az.plot_posterior(idata, )
+    axes = az.plot_posterior(idata)
 
     prior_means = [
         24.8176103991685,
@@ -91,8 +91,10 @@ def generate_all_flow_plots(idata, folder):
     save_plot("posterior_plot.pdf", folder_path=folder)
 
     with open(os.path.join(folder, "summary.txt"), "w+") as file:
-        summary = az.summary(idata)
-        file.writelines(str(summary))
+        accepted, rejected = compute_accepted(idata)
+        summary = str(az.summary(idata))
+        summary += f"\n\n{accepted} accepted\n{rejected} rejected\n{accepted / (accepted + rejected)} acceptance rate"
+        file.writelines(summary)
 
 
     # temporarily add constant data, eventually load data from config
@@ -114,10 +116,26 @@ def generate_all_flow_plots(idata, folder):
     save_plot("pressure_plot.pdf", folder_path=folder)
 
 
+def compute_accepted(idata):
+    variables =  list(idata["posterior"])
+    accepted = 0
+    rejected = 0
+    for chain in idata["posterior"][variables[0]]:
+        last_sample = chain[0]
+        for sample in chain:
+            if sample != last_sample:
+                last_sample = sample
+                accepted += 1
+            else:
+                rejected += 1
+        
+    return accepted, rejected
+
+
 
 if __name__ == "__main__":
-    idata_name = "10x500_mlda_0.idata"
-    folder_path = os.path.join(ROOT_DIR, "data", "job_21453475.meta-pbs.metacentrum.cz")
+    idata_name = "10x1000_mlda_1.idata"
+    folder_path = os.path.join(ROOT_DIR, "data", "10x1000_mlda_1")
     #folder_path = os.path.join(ROOT_DIR, "data", idata_name.split(".")[0])
     idata = read_idata_from_file(idata_name, folder_path)
     generate_all_flow_plots(idata, folder_path)
