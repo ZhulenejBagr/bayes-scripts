@@ -9,11 +9,16 @@ def graphs_path() -> None:
 
 def save_plot(
         filename: str,
+        fig: plt.Figure = None,
         folder_path: str = graphs_path()) -> None:
+
     
     # if path doesn't exist, create it
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
 
-    plt.savefig(os.path.join(folder_path, filename), dpi=300)
+    if fig is None:
+        plt.savefig(os.path.join(folder_path, filename), dpi=300)
+    else:
+        fig.savefig(os.path.join(folder_path, filename), dpi=300)
     print(f"Succesfully saved plot {filename} at {folder_path}.")
