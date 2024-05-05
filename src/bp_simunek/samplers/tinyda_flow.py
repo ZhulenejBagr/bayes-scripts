@@ -211,7 +211,10 @@ class TinyDAFlowWrapper():
         logging.info(values)
 
         # setup loglike
-        self.setup_loglike(values, np.multiply(self.noise_std, np.eye(len(values))))
+        noise_cov = np.multiply(self.noise_std, np.eye(len(values)))
+        logging.info("Using following noise covariance matrix")
+        logging.info(noise_cov)
+        self.setup_loglike(values, noise_cov)
         self.measured_len = len(values)
 
         # combine into posterior
