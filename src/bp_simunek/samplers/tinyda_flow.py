@@ -229,8 +229,8 @@ class TinyDAFlowWrapper():
         # setup proposal covariance matrix (for random gaussian walk & adaptive metropolis)
         proposal_cov = self.create_proposal_matrix()
         # setup proposal
-        #proposal = tda.IndependenceSampler(self.prior)
-        proposal = tda.GaussianRandomWalk(proposal_cov, self.scaling, self.adaptive, self.gamma, self.adaptivity_period)
+        proposal = tda.IndependenceSampler(self.prior)
+        #proposal = tda.GaussianRandomWalk(proposal_cov, self.scaling, self.adaptive, self.gamma, self.adaptivity_period)
 
         # sample from prior to give all chains a different starting point
         # not doing this causes all of the chains to start from the same spot
