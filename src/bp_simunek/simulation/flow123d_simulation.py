@@ -301,7 +301,10 @@ class Flow123dSimulation:
             level = config_dict["sampler_parameters"]["level"]
             mesh_name = config_dict["geometry"]["mesh_name"][level]
         else:
-            mesh_name = config_dict["geometry"]["mesh_name"]
+            try:
+                mesh_name = config_dict["geometry"]["mesh_name"][-1]
+            except:
+                mesh_name = config_dict["geometry"]["mesh_name"]
     
         if cut_tunnel:
             mesh_name = mesh_name + "_cut"
