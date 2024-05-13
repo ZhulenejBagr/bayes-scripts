@@ -1,5 +1,7 @@
 import os
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+import matplotlib.patches as mpt
 import arviz as az
 import numpy as np
 import scipy.stats as sps
@@ -10,25 +12,91 @@ from definitions import ROOT_DIR
 def plot_pressures(idata, exp, times):
     plt.figure()
     plt.xlabel("Čas [den]")
-    plt.ylabel("Tlak [kPa]")
-    plt.title("Vývoj tlaku v čase")
+    plt.ylabel("Tlaková výška [m]")
+    plt.title("Změna tlakové výšky vrtu H1 v čase")
     obs_keys = [f"obs_{idx}" for idx in np.arange(0, 26)]
-    exp_plot, = plt.plot(times, exp)
-    minimums = []
-    maximums = []
-    for key in obs_keys:
+    exp_plot, = plt.plot(times, exp, color="black", linewidth=1, linestyle="dotted")
+    areas = 100
+    quantiles_95 = []
+    quantiles_75 = []
+    quantiles_25 = []
+    quantiles_5 = []
+    means = []
+    medians = []
+
+    norm_constant = 7000
+
+    prev_time = 0
+    prev_linspace = np.ones(areas) * 275
+    prev_normhist = np.ones(areas) / areas
+    for time_idx, key in enumerate(obs_keys):
         observed = idata["posterior_predictive"][key]
         mean = observed.mean()
         std = observed.std()
-        minimum = mean - 3*std
-        minimums.append(minimum)
-        maximum = mean + 3*std
-        maximums.append(maximum)
+        means.append(mean)
+        medians.append(np.median(observed))
+        quantiles_95.append(np.quantile(observed, 0.95))
+        quantiles_75.append(np.quantile(observed, 0.75))
+        quantiles_25.append(np.quantile(observed, 0.25))
+        quantiles_5.append(np.quantile(observed, 0.05))
 
-    min_plot, = plt.plot(times, minimums)
-    max_plot, = plt.plot(times, maximums)
+        minimum = np.min(observed)
+        maximum = np.max(observed)
 
-    plt.legend([exp_plot, min_plot, max_plot], ["Naměřená data", "Minimum dat z inverze", "Maximum dat z inverze"])
+        linspace = np.linspace(minimum, maximum, areas)
+        
+        interp_linspace = np.divide(np.add(prev_linspace, linspace), 2)
+        interp_time = (prev_time + times[time_idx]) / 2
+
+        hist, bins = np.histogram(observed, linspace)
+
+        norm_hist = np.subtract(hist, np.min(hist))
+        #norm_hist = np.divide(norm_hist, np.max(norm_hist))
+        norm_hist = np.divide(norm_hist, norm_constant)
+
+        cmap = mpl.colormaps["Oranges"].resampled(areas)
+
+        for area in np.arange(1, areas):
+            pdf_a = prev_normhist[area-1] * 0.7 + norm_hist[area-1] * 0.3
+            pdf_b = prev_normhist[area-1] * 0.3 + norm_hist[area-1] * 0.7
+            plt.fill_between([prev_time, interp_time], [prev_linspace[area-1], interp_linspace[area-1]], [prev_linspace[area], interp_linspace[area]], color=cmap(pdf_a))
+            plt.fill_between([interp_time, times[time_idx]], [interp_linspace[area-1], linspace[area-1]], [interp_linspace[area], linspace[area]], color=cmap(pdf_b))
+            #plt.fill_between([prev_time, times[time_idx]], [prev_linspace[area-1], linspace[area-1]], [prev_linspace[area], linspace[area]], color=cmap(norm_hist[area-1]))
+
+        prev_time = times[time_idx]
+        prev_linspace = linspace
+        prev_normhist = norm_hist
+
+    quantiles_95_plot, = plt.plot(times, quantiles_95, color="blue", linewidth=1)
+    #quantiles_75_plot, = plt.plot(times, quantiles_75)
+    #quantiles_25_plot, = plt.plot(times, quantiles_25)
+    quantiles_5_plot, = plt.plot(times, quantiles_5, color="darkblue", linewidth=1)
+    median_plot, = plt.plot(times, medians, color="indigo", linewidth=1, linestyle="dashed")
+
+    filled_patch = mpt.Patch(color="orange", label="Pravděpodobnostní hustota inverze")
+
+    plt.legend(
+        [
+            exp_plot, 
+            median_plot, 
+            quantiles_95_plot, 
+            #quantiles_75_plot, 
+            #quantiles_25_plot, 
+            quantiles_5_plot,
+            filled_patch
+        ], 
+        [
+            "Naměřená data",
+            "Medián z inverze", 
+            "95. kvantil inverze",
+            #"75. kvantil inverze",
+            #"25. kvantil inverze",
+            "5. kvantil inverze",
+            "Pravděpodobnostní hustota inverze"
+        ])
+    #handles, labels = plt.gca().get_legend_handles_labels()
+    #handles.extend([filled_patch])
+    #plt.legend(handles, labels)
     return
 
 
@@ -37,17 +105,13 @@ def generate_all_flow_plots(idata, folder):
     az.plot_pair(idata, kind="kde")
     save_plot("pair_plot.pdf", folder_path=folder)
     az.plot_trace(idata)
+    plt.tight_layout()
     save_plot("trace_plot.pdf", folder_path=folder)
 
-    #az.plot_forest(idata)
-    #save_plot("forest_plot.pdf", folder_path=folder)
-    #az.plot_density(idata)
-    #save_plot("density_plot.pdf", folder_path=folder)
-
-
-    axes = az.plot_posterior(idata)
+    axes = az.plot_posterior(idata, grid=[4, 2])
 
     prior_means = [
+        -16.4340685618576,
         24.8176103991685,
         17.6221730477346,
         16.2134058307626,
@@ -59,6 +123,7 @@ def generate_all_flow_plots(idata, folder):
     ]
 
     prior_stds = [
+        2,
         0.5,
         0.3,
         0.3,
@@ -77,7 +142,7 @@ def generate_all_flow_plots(idata, folder):
                 continue
             if idx % axrow_len == 0:
                 ax.set_ylabel("Hustota pravděpodobnosti", fontsize=15)
-            if idx // axrow_len == 1:
+            if idx // axrow_len == 3:
                 ax.set_xlabel("Hodnota parametru", fontsize=15)
             mean = prior_means[idx]
             std = prior_stds[idx]
@@ -134,8 +199,8 @@ def compute_accepted(idata):
 
 
 if __name__ == "__main__":
-    idata_name = "10x1000_mlda_1.idata"
-    folder_path = os.path.join(ROOT_DIR, "data", "10x1000_mlda_1")
-    #folder_path = os.path.join(ROOT_DIR, "data", idata_name.split(".")[0])
+    idata_name = "10x3000_mlda_0.idata"
+    #folder_path = os.path.join(ROOT_DIR, "data", "10x1000_mlda_1")
+    folder_path = os.path.join(ROOT_DIR, "data", idata_name.split(".")[0])
     idata = read_idata_from_file(idata_name, folder_path)
     generate_all_flow_plots(idata, folder_path)
