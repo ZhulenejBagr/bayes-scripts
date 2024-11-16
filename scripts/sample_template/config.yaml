@@ -1,4 +1,4 @@
-mesh_only: False
+  mesh_only: False
 make_plots: False
 # if True, it removes sample dir right after the sample is collected
 clean_sample_dir: True
@@ -34,7 +34,7 @@ parameters:
 
 sampler_parameters:
   # how many samples to collect
-  sample_count: 1000
+  sample_count: 3000
   # how many samples to scrap
   tune_count: 1
   # how many chains to run
@@ -52,7 +52,7 @@ sampler_parameters:
   # adaptivity coefficient
   proposal_gamma: 1.05
   # whether to use MLDA or not
-  mlda: True
+  mlda: False
   # number of MLDA levels
   mlda_levels: 2
 
