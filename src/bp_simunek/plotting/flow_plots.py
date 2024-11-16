@@ -13,6 +13,8 @@ def plot_pressures(idata, exp, times):
     plt.figure()
     plt.xlabel("Čas [den]")
     plt.ylabel("Tlaková výška [m]")
+    plt.xlim(-5, 370)
+    plt.ylim(0, 300)
     plt.title("Změna tlakové výšky vrtu H1 v čase")
     obs_keys = [f"obs_{idx}" for idx in np.arange(0, 26)]
     exp_plot, = plt.plot(times, exp, color="black", linewidth=1, linestyle="dotted")
@@ -203,4 +205,5 @@ if __name__ == "__main__":
     #folder_path = os.path.join(ROOT_DIR, "data", "10x1000_mlda_1")
     folder_path = os.path.join(ROOT_DIR, "data", idata_name.split(".")[0])
     idata = read_idata_from_file(idata_name, folder_path)
+    idata = idata.sel(draw=slice(1000, None))
     generate_all_flow_plots(idata, folder_path)
