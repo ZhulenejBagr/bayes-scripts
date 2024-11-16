@@ -4,7 +4,7 @@ import tinyDA as tda
 import numpy.typing as npt
 
 from arviz import InferenceData, summary
-from bp_simunek.samplers.idata_tools import save_idata_to_file
+#from .idata_tools import save_idata_to_file
 
 def sample(
         samples: int = 10000,
@@ -36,7 +36,7 @@ def sample(
         @staticmethod
         def forward_model(params):
             CustomLikelihood.params = params
-            return -1 / 80  * (3 / np.exp(params[0]) + 1 / np.exp(params[1]))
+            return np.full((1, 1), -1 / 80  * (3 / np.exp(params[0]) + 1 / np.exp(params[1])))
 
     # combine into posterior
     #prior = multivariate_normal(mean=prior_mean, cov=prior_cov)
@@ -50,7 +50,7 @@ def sample(
 
     # sample distribution
     total_samples = tune + samples
-    samples = tda.sample(posterior, proposal, iterations=total_samples, force_sequential=True, n_chains=n_chains)
+    samples = tda.sample(posterior, proposal, iterations=total_samples, force_sequential=False, n_chains=n_chains)
 
     # convert to ArviZ inference data object
     idata = tda.to_inference_data(chain=samples, burnin=tune + 1, parameter_names=["U_0", "U_1"])
@@ -61,5 +61,5 @@ def sample(
 if __name__ == "__main__":
     idata_standard = sample(tune=10000)
     idata_offset = sample(tune=10000, prior_mean=np.array([8, 6]), prior_cov=np.array([[16, -2], [-2, 16]]))
-    save_idata_to_file(idata_standard, "tinyda_randomwalk.standard.idata")
-    save_idata_to_file(idata_offset, "tinyda_randomwalk.offset.idata")
+    #save_idata_to_file(idata_standard, "tinyda_randomwalk.standard.idata")
+    #save_idata_to_file(idata_offset, "tinyda_randomwalk.offset.idata")
