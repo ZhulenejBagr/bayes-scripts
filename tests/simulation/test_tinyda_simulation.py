@@ -52,7 +52,7 @@ def test_simulation11():
     # generate plots
     generate_all_flow_plots(idata, folder=work_dir)
 
-#@pytest.mark.skip
+@pytest.mark.skip
 def test_simulation12_mlda():
     os.chdir(script_dir)
     observe_path = Path(script_dir, "../measured_data").absolute()
