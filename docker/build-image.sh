@@ -9,4 +9,4 @@ tag=ondrejsimunek/bpr:${1:-${git_commit}}
 docker build --tag ${tag} .
 
 # can be pushed to Docker hub later..
-docker push ${tag}
+#docker push ${tag}
