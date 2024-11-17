@@ -14,18 +14,11 @@ sudo pip3 uninstall pytest
 
 cd ${SRC_ROOT}
 rm -r venv
-#virtualenv venv
 python3 -m venv --system-site-packages venv
 
 venv_pip=${SRC_ROOT}/venv/bin/pip
-#source venv/bin/activate
 
 $venv_pip install -r $SRC_ROOT/requirements.txt
-
-#$venv_pip install -e submodules/bgem
-# TODO simplify dependency and submodules
-# attrs somehow was broken after gmsh explicit installation, must force its reinstalation
-#$venv_pip install --force-reinstall --upgrade attrs
 
 # install repository
 $venv_pip install -e .
