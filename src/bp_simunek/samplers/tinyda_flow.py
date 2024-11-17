@@ -306,7 +306,8 @@ class TinyDAFlowWrapper():
         self.prior = tda.distributions.JointPrior([prior["dist"] for prior in priors])
 
     def setup_loglike(self, observed, cov):
-        self.loglike = tda.GaussianLogLike(observed, cov)
+        logging.info("bruh")
+        self.loglike = tda.GaussianLogLike(np.full(len(observed), 1), cov)
 
     def forward_model(self, params):
         print(params)
