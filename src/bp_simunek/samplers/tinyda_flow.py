@@ -303,7 +303,7 @@ class TinyDAFlowWrapper():
             })
 
         self.priors = priors
-        self.prior = tda.CompositePrior([prior["dist"] for prior in priors])
+        self.prior = tda.distributions.JointPrior([prior["dist"] for prior in priors])
 
     def setup_loglike(self, observed, cov):
         self.loglike = tda.GaussianLogLike(observed, cov)
