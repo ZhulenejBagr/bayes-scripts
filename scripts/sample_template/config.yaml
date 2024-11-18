@@ -72,11 +72,7 @@ output_times: &output_times
   - {begin: 100, step: 20, end: *end_time}
 
 geometry:
-  # List of meshes for levels of MLDA
-  # (base of the mesh file name)
-  mesh_name:
-    - tunnel_mesh_cut_coarse_healed
-    - tunnel_mesh_cut_fine_healed
+    meshtunnel_mesh_cut_coarse_healed
 
 observe_points:
   #- V1 # HGT1-5
