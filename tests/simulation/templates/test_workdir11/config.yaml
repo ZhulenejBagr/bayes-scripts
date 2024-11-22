@@ -35,7 +35,7 @@ sampler_parameters:
   # how many samples to scrap
   tune_count: 1
   # how many chains to run
-  chain_count: 1
+  chain_count: 4
   # whether to force sequential sampling, even with chains > 1 and ray present
   force_sequential: False
   # standard deviation of noise function
@@ -50,6 +50,8 @@ sampler_parameters:
   proposal_gamma: 1.01
   # whether to use MLDA or not
   mlda: False
+
+  proposal: "DREAMZ"
 
 # types of collected data
 collect_results:
