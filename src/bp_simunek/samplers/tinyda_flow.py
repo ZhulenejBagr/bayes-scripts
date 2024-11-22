@@ -266,7 +266,7 @@ class TinyDAFlowWrapper():
             prior_values = list(prior_values)
 
         # sampling process
-        samples = tda.sample(posteriors, proposal, self.sample_count, self.number_of_chains, prior_values, 1)
+        samples = tda.sample(posteriors, proposal, self.sample_count, self.number_of_chains, prior_values, 1, force_sequential=self.force_sequential)
 
         # if parallel sampling - concat results into one list
         if self.is_parallel:
