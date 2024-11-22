@@ -26,6 +26,7 @@ SAMPLE_COUNT_DEFAULT = 10
 TUNE_COUNT_DEFAULT = 1
 MLDA_DEFAULT = False
 MLDA_LEVELS_DEFAULT = 2
+SAMPLER_DEFAULT = tda.GaussianRandomWalk
 
 @ray.remote
 class SharedTextVariable():
@@ -111,6 +112,27 @@ class TinyDAFlowWrapper():
             self.scaling = PROPOSAL_SCALING_DEFAULT
         else:
             self.scaling = params[proposal_scaling_key]
+
+        # proposal selection
+        proposal_key = "proposal"
+        if proposal_key in params:
+            match params[proposal_key]:
+                case "DREAM":
+                    self.sampler = tda.DREAM
+                    logging.info("Using DREAM proposal")
+                case "DREAMZ":
+                    self.sampler = tda.DREAMZ
+                    logging.info("Using DREAMZ proposal")
+                case "Metropolis":
+                    self.sampler = tda.GaussianRandomWalk
+                    logging.info("Using GRW proposal")
+                case _:
+                    self.sampler = tda.GaussianRandomWalk
+                    logging.warning(f"Incorrect sampler specified, defaulting to {SAMPLER_DEFAULT}")
+        else:
+            logging.warning(f"No sampler specified, defaulting to {SAMPLER_DEFAULT}")
+            self.sampler = SAMPLER_DEFAULT
+
 
         # adaptive proposal params
         proposal_adaptive_key = "proposal_adaptive"
