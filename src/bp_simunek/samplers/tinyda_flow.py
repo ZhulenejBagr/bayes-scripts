@@ -240,7 +240,7 @@ class TinyDAFlowWrapper():
         # -> messes up the directory naming, simultaneous access to the same files
         # also adds pointless correlation and reduces coverage
         prior_values = self.prior.rvs(self.number_of_chains)
-        if self.is_parallel:
+        if self.number_of_chains > 1:
             prior_values = list(prior_values)
 
         # sampling process
