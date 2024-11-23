@@ -26,6 +26,10 @@ def generate_time_axis(config_dict):
     end_time = float(config_dict["end_time"])
     output_times = config_dict["output_times"]
 
+    logging.info("end time %d", end_time)
+    logging.info("output times")
+    logging.info(output_times)
+
     # create time axis
     times = []
     for dt in output_times:
