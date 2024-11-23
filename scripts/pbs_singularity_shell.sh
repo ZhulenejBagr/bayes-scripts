@@ -15,7 +15,7 @@ cfg_path=$CFG_PATH
 id=$(echo "$PBS_JOBID" | cut -d'.' -f1)
 echo $id
 
-mnt="${HOME}"/."${id}"
+mnt="${HOME}"/"${id: -3}"
 echo $mnt
 
 mount --bind $SCRATCHDIR $mnt
