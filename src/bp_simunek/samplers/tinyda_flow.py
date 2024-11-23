@@ -3,6 +3,7 @@ import time
 import traceback
 import logging
 from functools import partial
+from enum import Enum
 
 import numpy as np
 import scipy.stats as sps
@@ -26,7 +27,10 @@ SAMPLE_COUNT_DEFAULT = 10
 TUNE_COUNT_DEFAULT = 1
 MLDA_DEFAULT = False
 MLDA_LEVELS_DEFAULT = 2
-SAMPLER_DEFAULT = tda.GaussianRandomWalk
+PROPOSAL_DEFAULT = tda.GaussianRandomWalk
+M0_DEFAULT = 5
+DELTA_DEFAULT = 1
+NCR_DEFAULT = 1
 
 @ray.remote
 class SharedTextVariable():
@@ -85,6 +89,10 @@ class TinyDAFlowWrapper():
         self.tune_count = TUNE_COUNT_DEFAULT
         self.mlda = MLDA_DEFAULT
         self.levels = MLDA_LEVELS_DEFAULT
+        self.proposal = PROPOSAL_DEFAULT
+        self.m0 = M0_DEFAULT
+        self.delta = DELTA_DEFAULT
+        self.ncr = NCR_DEFAULT
 
     def load_sampler_params(self, params):
         # specify number of chains
@@ -118,21 +126,38 @@ class TinyDAFlowWrapper():
         if proposal_key in params:
             match params[proposal_key]:
                 case "DREAM":
-                    self.sampler = tda.DREAM
+                    self.proposal = tda.DREAM
                     logging.info("Using DREAM proposal")
                 case "DREAMZ":
-                    self.sampler = tda.DREAMZ
+                    self.proposal = tda.DREAMZ
                     logging.info("Using DREAMZ proposal")
                 case "Metropolis":
-                    self.sampler = tda.GaussianRandomWalk
+                    self.proposal = tda.GaussianRandomWalk
                     logging.info("Using GRW proposal")
                 case _:
-                    self.sampler = tda.GaussianRandomWalk
-                    logging.warning(f"Incorrect sampler specified, defaulting to {SAMPLER_DEFAULT}")
+                    self.proposal = tda.GaussianRandomWalk
+                    logging.warning(f"Incorrect sampler specified, defaulting to {PROPOSAL_DEFAULT}")
         else:
-            logging.warning(f"No sampler specified, defaulting to {SAMPLER_DEFAULT}")
-            self.sampler = SAMPLER_DEFAULT
+            logging.warning(f"No sampler specified, defaulting to {PROPOSAL_DEFAULT}")
+            self.sampler = PROPOSAL_DEFAULT
 
+        m0_key = "m0"
+        if m0_key in params:
+            self.m0 = params[m0_key]
+        else:
+            self.m0 = M0_DEFAULT
+
+        delta_key = "delta"
+        if delta_key in params:
+            self.delta = params[delta_key]
+        else:
+            self.delta = DELTA_DEFAULT
+
+        ncr_key = "ncr"
+        if ncr_key in params:
+            self.ncr = params[ncr_key]
+        else:
+            self.ncr = NCR_DEFAULT
 
         # adaptive proposal params
         proposal_adaptive_key = "proposal_adaptive"
@@ -255,7 +280,16 @@ class TinyDAFlowWrapper():
         proposal_cov = self.create_proposal_matrix()
         # setup proposal
         #proposal = tda.IndependenceSampler(self.prior)
-        proposal = tda.GaussianRandomWalk(proposal_cov, self.scaling, self.adaptive, self.gamma, self.adaptivity_period)
+        if self.proposal == tda.GaussianRandomWalk:
+            logging.info("Using GRW")
+            proposal = tda.GaussianRandomWalk(proposal_cov, self.scaling, self.adaptive, self.gamma, self.adaptivity_period)
+        elif self.proposal == tda.DREAMZ:
+            logging.info("Using DREAMZ")
+            proposal = tda.DREAMZ(self.m0, self.delta, nCR=self.ncr)
+        elif self.proposal == tda.DREAM:
+            logging.info("Using DREAM")
+            proposal = tda.DREAM(self.m0, self.delta, nCR=self.ncr)
+
 
         # sample from prior to give all chains a different starting point
         # not doing this causes all of the chains to start from the same spot
