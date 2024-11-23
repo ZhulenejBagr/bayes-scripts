@@ -3,16 +3,16 @@
 #PBS -S /bin/bash
 #PBS -N singularity_sample_script_1000
 #PBS -q charon
-#PBS -l select=1:ncpus=10:mem=10gb:scratch_local=5gb
+##PBS -l select=1:ncpus=10:mem=10gb:scratch_local=5gb
 #PBS -l walltime=36:00:00
 
 # run fterm sing atleast once to create the image
 #./bin/fterm_sing
-cd $PBS_O_WORKDIR
+cd $PBS_O_WORKDIR # potential cause of symlinks being overwritten
 
-cfg_path=$1
+cfg_path=$CFG_PATH
 
-id=$($PBS_JOBID | cut -d'.' -f1)
+id=$(echo "$PBS_JOBID" | cut -d'.' -f1)
 echo $id
 
 mnt="${HOME}"/."${id}"
