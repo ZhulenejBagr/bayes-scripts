@@ -15,13 +15,12 @@ cfg_path=$CFG_PATH
 id=$(echo "$PBS_JOBID" | cut -d'.' -f1)
 echo $id
 
-mnt="${HOME}"/"${id: -3}"
-echo $mnt
+link="${HOME}"/"${id: -3}"
+echo $link
 
-rm $mnt
-mkdir $mnt
-mount --bind $SCRATCHDIR $mnt
+if [ ! -f "${link}" ] ; then
+    rm "${link}"
+fi
+ln -s $SCRATCHDIR $link
 
 singularity exec bp_simunek.sif bash scripts/singularity_run_script.sh "${mnt}" "${cfg_path}"
-
-rm $mnt
