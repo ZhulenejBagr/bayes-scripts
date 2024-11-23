@@ -60,4 +60,4 @@ def sample():
     generate_all_flow_plots(idata, folder=work_dir)
 
 if __name__ == "__main__":
-    sample11()
+    sample()
