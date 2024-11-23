@@ -74,7 +74,7 @@ output_times: &output_times
   - {begin: 100, step: 20, end: *end_time}
 
 geometry:
-    meshtunnel_mesh_cut_coarse_healed
+    mesh_name: tunnel_mesh_cut_fine_healed
 
 observe_points:
   #- V1 # HGT1-5
