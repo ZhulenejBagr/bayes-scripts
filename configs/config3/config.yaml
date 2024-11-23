@@ -58,7 +58,6 @@ sampler_parameters:
   # number of MLDA levels
   mlda_levels: 2
 
-  proposal: "DREAMZ"
   m0: 100
   delta: 3
   lcr: 3
