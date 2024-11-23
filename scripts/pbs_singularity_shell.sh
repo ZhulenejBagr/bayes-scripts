@@ -10,11 +10,14 @@
 #./bin/fterm_sing
 cd $PBS_O_WORKDIR
 
-link=${HOME}/.r
-echo $link
-if [ ! -f "${link}" ] ; then
-    rm "${link}"
-fi
-ln -s $SCRATCHDIR $link
+cfg_path=$1
 
-singularity exec bp_simunek.sif bash scripts/singularity_run_script.sh
+id=$($PBS_JOBID | cut -d'.' -f1)
+echo $id
+
+mnt="${HOME}"/."${id}"
+echo $mnt
+
+mount --bind $SCRATCHDIR $mnt
+
+singularity exec bp_simunek.sif bash scripts/singularity_run_script.sh "${mnt}" "${cfg_path}"
