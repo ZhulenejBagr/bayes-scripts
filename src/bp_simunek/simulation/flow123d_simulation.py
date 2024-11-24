@@ -255,15 +255,17 @@ class Flow123dSimulation:
 
         # print("Collecting results for observe points: ", point_names)
         data = observe_dict['data']
+        logging.warning(data)
         data_values = np.array([d[field_name] for d in data])
+        logging.warning(data_values)
         values = data_values[:, points2collect_indices]
         obs_times = np.array([d["time"] for d in data]).transpose()
 
         if select_times is not None:
             # check that observe data are computed at all times of defined time axis
             all_times_computed = np.all(np.isin(select_times, obs_times))
-            logging.warning(select_times)
-            logging.warning(obs_times)
+            #logging.warning(select_times)
+            #logging.warning(obs_times)
             if not all_times_computed:
                 raise Exception("Observe data not computed at all times as defined by input!")
             # skip the times not specified in input
