@@ -258,8 +258,10 @@ class Flow123dSimulation:
         logging.warning(data)
         data_values = np.array([d[field_name] for d in data])
         logging.warning(data_values)
-        values = data_values[:, points2collect_indices]
+        #values = data_values[:, points2collect_indices]
         obs_times = np.array([d["time"] for d in data]).transpose()
+        logging.warning(obs_times)
+        logging.warning(select_times)
 
         if select_times is not None:
             # check that observe data are computed at all times of defined time axis
