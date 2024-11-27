@@ -18,8 +18,8 @@ problem: !Coupling_Sequential
       common_time_unit: d
     iteration_parameter: 1 # affects convergence of HM coupling (defaults to 1, lower value sometimes helps)
     a_tol: 0
-    r_tol: 1e-5
-    min_it: 150
+    r_tol: 1e-7
+    #min_it: 150
     max_it: 200
     flow_equation: !Flow_Richards_LMH
         user_fields:
