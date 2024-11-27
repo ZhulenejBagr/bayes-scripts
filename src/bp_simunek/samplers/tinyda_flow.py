@@ -33,15 +33,51 @@ DELTA_DEFAULT = 1
 NCR_DEFAULT = 1
 
 @ray.remote
-class SharedTextVariable():
-    def __init__(self) -> None:
-        self.text = []
+class DataLogger():
+    """Ray object to log various data during the sampling process.
+    """
+    def __init__(self, files_dict: dict) -> None:
+        """Setup all files to be written and clean up existing files.
 
-    def append(self, text):
-        self.text.append(text)
+        Args:
+            files_dict (dict): Dictionary with keys to identify the
+             various files and values being the path to the files.
+        """
+        #for file in files_dict.values():
+        #    with open(file, "w", encoding="utf8") as file:
+        #        file.writeline("")
 
-    def get_text(self):
-        return self.text
+        self.files_dict = files_dict
+
+    def get_file_keys(self) -> list:
+        """Get all avaialable file keys for logging.
+
+        Returns:
+            list: List of all available keys.
+        """
+        return list(self.files_dict.keys())
+
+    def write_to_file(self, message: str, file_key: str) -> None:
+        """Write to a certain logging file.
+
+        Args:
+            message (str): Message to write.
+            file_key (str): File key corresponding to the
+              file to be written into.
+        """
+        # If specified key is unknown, return witout writing and log error
+        if file_key not in self.files_dict.keys():
+            logging.error("No logging file found with key %s", file_key)
+            return
+
+        # Create file or append to existing contents
+        try:
+            with open(self.files_dict[file_key], "a+", encoding="utf8") as file:
+                file.write(message)
+        except Exception:
+            logging.error("Unable to write to file")
+            logging.error(traceback.format_exc())
+
 
 
 class TinyDAFlowWrapper():
@@ -62,7 +98,7 @@ class TinyDAFlowWrapper():
         # time and parameters info of simulations
         self.observe_times = []
         # reference to shared object for logging
-        self.shared_text_objref = -1
+        self.logger_ref = None
         # check for sampler config or set default params
         sampler_config_key = "sampler_parameters"
         if sampler_config_key not in self.config:
@@ -238,9 +274,13 @@ class TinyDAFlowWrapper():
         # check whether parallel sampling or not
         self.is_parallel = self.number_of_chains > 1 and ray_is_available and not self.force_sequential
 
-        # setup shared text logging buffer if parallel sampling
-        if self.is_parallel:
-            self.shared_text_objref = SharedTextVariable.remote()
+        # setup logging
+        logging_files = {
+            "observe_times": os.path.join(self.flow_wrapper.sim._config["work_dir"], "observe_times.txt")
+        }
+        self.logger_ref = DataLogger.remote(logging_files)
+        logging.info("Using following logger files:")
+        logging.info(logging_files)
 
         # setup priors from config of flow wrapper
         self.setup_priors(self.config)
@@ -302,21 +342,6 @@ class TinyDAFlowWrapper():
         # sampling process
         samples = tda.sample(posteriors, proposal, self.sample_count, self.number_of_chains, prior_values, 1, force_sequential=self.force_sequential)
 
-        # if parallel sampling - concat results into one list
-        if self.is_parallel:
-            job = self.shared_text_objref.get_text.remote()
-            ndone = job
-            while ndone:
-                _, ndone = ray.wait([ndone])
-            obs_times = ray.get(job)
-        else:
-            obs_times = self.observe_times
-
-        # write observe times to file
-        observe_times_path = os.path.join(self.flow_wrapper.sim._config["work_dir"], "observe_times.txt")
-        with open(observe_times_path, "w", encoding="utf8") as file:
-            file.writelines(obs_times)
-
         # check and save samples
         idata = tda.to_inference_data(chain=samples, parameter_names=[prior["name"] for prior in self.priors], burnin=self.tune_count)
 
@@ -362,7 +387,6 @@ class TinyDAFlowWrapper():
         self.prior = tda.distributions.JointPrior([prior["dist"] for prior in priors])
 
     def setup_loglike(self, observed, cov):
-        logging.info("bruh")
         self.loglike = tda.GaussianLogLike(np.full(len(observed), 1), cov)
 
     def forward_model(self, params):
@@ -393,22 +417,23 @@ class TinyDAFlowWrapper():
 
             trans_params.append(trans_param)
 
+        # Pass params to flow
         logging.info("Passing params to flow")
         logging.info(trans_params)
         self.flow_wrapper.set_parameters(data_par=trans_params)
 
+        # Start time measurement of model
         start = time.time()
+        # Get result from flow - blocks thread
         res, data = self.flow_wrapper.get_observations()
+        # End time measurement of model
         end = time.time()
         elapsed = end - start
-        string = str(params.tolist()) + " | " + str(elapsed) + "\n"
-        if self.is_parallel:
-            job = self.shared_text_objref.append.remote(string)
-            while job:
-                _, job = ray.wait([job])
-        else:
-            self.observe_times.append(string)
-
+        # Write time measurement
+        # Await confirmation of logging
+        timing_string = str("{:.2f}".format(elapsed) + "s | " + str(params.tolist())) + "\n"
+        logging.info(timing_string)
+        self.logger_ref.write_to_file.remote(timing_string, "observe_times")
 
         if self.config["conductivity_observe_points"]:
             num = len(self.config["conductivity_observe_points"])
