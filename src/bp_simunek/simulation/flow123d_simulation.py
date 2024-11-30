@@ -56,6 +56,8 @@ class Flow123dSimulation:
         self.sample_dir = Path(".")
         self.sample_output_dir = "output"
         self.param_hash = ""
+        self.stdout_path = ""
+        self.stderr_path = ""
 
     def set_parameters(self, data_par):
         param_list = self._config["parameters"]
@@ -193,10 +195,14 @@ class Flow123dSimulation:
         if config_dict["collect_results"]["collect_observe"]:
             data = self.collect_results_observe(config_dict, fo)
 
-        if config_dict["clean_sample_dir"]:
-            shutil.rmtree(self.sample_dir)
+        #if config_dict["clean_sample_dir"]:
+        #    shutil.rmtree(self.sample_dir)
 
         return data
+
+    def clean_sample_dir(self, config_dict):
+        if config_dict["clean_sample_dir"]:
+            shutil.rmtree(self.sample_dir)
 
     def collect_results_vtk(self, config_dict, fo: common.FlowOutput):
         # Load the PVD file
@@ -296,6 +302,8 @@ class Flow123dSimulation:
             fname = params["in_file"]
             input_template = common.File(Path(config_dict["common_files_dir"])/(fname + '_tmpl.yaml'))
             completed_process, stdout, stderr = common.flow_call(self.sample_dir, arguments, input_template, params)
+            self.stdout_path = stdout.path
+            self.stderr_path = stderr.path
         status, fo = common.flow_check(self.sample_dir, completed_process, result_files)
 
         return status, fo
