@@ -301,20 +301,21 @@ class TinyDAFlowWrapper():
         noise_cov = np.multiply(self.noise_std, np.eye(len(values)))
         logging.info("Using following noise covariance matrix")
         logging.info(noise_cov)
-        self.setup_loglike(values, noise_cov)
+        self.observed = values
+        self.cov = noise_cov
         self.measured_len = len(values)
 
         # combine into posterior
         # if using mlda, use one mesh per model
         if not self.mlda:
-            posteriors = tda.Posterior(self.prior, self.loglike, self.forward_model)
+            posteriors = tda.Posterior(self.prior, self, self.forward_model)
         else:
             self.flow_wrapper.set_mlda_level(0)
             posteriors = []
             for level in np.arange(self.mlda_levels):
                 logging.info(level)
                 forward_model = partial(self.forward_model_mlda, level=level)
-                posterior_level = tda.Posterior(self.prior, self.loglike, forward_model)
+                posterior_level = tda.Posterior(self.prior, self, forward_model)
                 posteriors.append(posterior_level)
         # setup proposal covariance matrix (for random gaussian walk & adaptive metropolis)
         proposal_cov = self.create_proposal_matrix()
@@ -386,8 +387,23 @@ class TinyDAFlowWrapper():
         self.priors = priors
         self.prior = tda.distributions.JointPrior([prior["dist"] for prior in priors])
 
-    def setup_loglike(self, observed, cov):
-        self.loglike = tda.GaussianLogLike(np.full(len(observed), 1), cov)
+    def loglike(self, data):
+        """Model loglike to cover for empty model output caes.
+
+        Args:
+            data (_type_): Model output, None assumes empty model output.
+
+        Returns:
+            _type_: Log-likelihood of model value existing.
+        """
+        regular_loglike = tda.GaussianLogLike(np.full(len(self.observed), 1), self.cov)
+
+        if data is not None:
+            return regular_loglike.loglike(data)
+        return np.log(0)
+
+
+
 
     def forward_model(self, params):
         print(params)
