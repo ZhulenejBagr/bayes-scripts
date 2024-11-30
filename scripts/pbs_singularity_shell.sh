@@ -18,11 +18,11 @@ echo $id
 hash=$(echo "$id" | cksum)
 echo $hash
 
-link="${HOME}"/"${hash: -3}"
+link="${HOME}"/"${hash:0:3}"
 echo $link
 
 if [ ! -f "${link}" ] ; then
-    rm "${link}"
+    rm -r "${link}"
 fi
 ln -s $SCRATCHDIR $link
 
