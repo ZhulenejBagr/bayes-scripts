@@ -15,7 +15,10 @@ cfg_path=$CFG_PATH
 id=$(echo "$PBS_JOBID" | cut -d'.' -f1)
 echo $id
 
-link="${HOME}"/"${id: -3}"
+hash=$(echo "$id" | cksum)
+echo $hash
+
+link="${HOME}"/"${hash: -3}"
 echo $link
 
 if [ ! -f "${link}" ] ; then
@@ -24,3 +27,5 @@ fi
 ln -s $SCRATCHDIR $link
 
 singularity exec bp_simunek.sif bash scripts/singularity_run_script.sh "${link}" "${cfg_path}"
+
+rm -r $link
