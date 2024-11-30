@@ -12,7 +12,8 @@ import ray
 import tinyDA as tda
 from tinyDA.sampler import ray_is_available
 
-from bp_simunek.simulation.measured_data import MeasuredData
+from ..simulation.measured_data import MeasuredData
+from ..common.memoize import File
 
 
 NUMBER_OF_CHAINS_DEFAULT = 1
@@ -441,21 +442,47 @@ class TinyDAFlowWrapper():
         # Start time measurement of model
         start = time.time()
         # Get result from flow - blocks thread
-        res, data = self.flow_wrapper.get_observations()
+
+        try:
+            _, data = self.flow_wrapper.get_observations()
+
+        except Exception:
+            logging.error("Couldn't get observation from wrapper\nSample will be rejected.")
+            logging.error(traceback.format_exc())
+            data = None
+
+        # Get additional data from stdout and stderr of flow 
+        with open(self.flow_wrapper.sim.stdout_path, "r", encoding="utf8") as stdout:
+            lines = stdout.readlines()
+            # example of last line output, split by spaces
+            # ['00:00:28.378', '', '', '', '', '', 'MESSAGE.HM', 'Iteration', '3'
+            # , 'abs.', 'difference:', '8.52479e-05', '', 'rel.', 'difference:', '3.11032e-09\n']
+            last_line = lines[-2].split(" ")
+            iteration = last_line[8]
+            rel_diff = last_line[-1][:-2] # remove newline
+            abs_diff = last_line[-5]
+            logging.info(iteration)
+            logging.info(rel_diff)
+            logging.info(abs_diff)
+
+
+        # Clean flow output dir
+        self.flow_wrapper.sim.clean_sample_dir(self.config)
+
         # End time measurement of model
         end = time.time()
         elapsed = end - start
         # Write time measurement
         # Await confirmation of logging
-        timing_string = str("{:.2f}".format(elapsed) + "s | " + str(params.tolist())) + "\n"
-        logging.info(timing_string)
-        self.logger_ref.write_to_file.remote(timing_string, "observe_times")
+        logstring = ','.join(["{:.2f}".format(elapsed), iteration, abs_diff, rel_diff, str(params.tolist())]) + "\n"
+        #logging.info(logstring)
+        self.logger_ref.write_to_file.remote(logstring, "observe_times")
 
-        if self.config["conductivity_observe_points"]:
-            num = len(self.config["conductivity_observe_points"])
-            data = data[:-num]
-        if res >= 0:
-            return data
+        #if self.config["conductivity_observe_points"]:
+        #    num = len(self.config["conductivity_observe_points"])
+        #    data = data[:-num]
+
+        return data
 
     def forward_model_mlda(self, params, level):
         self.flow_wrapper.set_mlda_level(level)
