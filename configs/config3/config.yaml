@@ -60,7 +60,7 @@ sampler_parameters:
 
   m0: 100
   delta: 3
-  lcr: 3
+  lcr: 5
 
 
 # types of collected data
