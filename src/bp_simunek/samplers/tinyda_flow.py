@@ -399,9 +399,10 @@ class TinyDAFlowWrapper():
         """
         regular_loglike = tda.GaussianLogLike(np.full(len(self.observed), 1), self.cov)
 
-        if data is not None:
-            return regular_loglike.loglike(data)
-        return np.log(0)
+        return regular_loglike(data)
+        #if data is not None:
+        #    return regular_loglike.loglike(data)
+        #return np.log(0)
 
 
 
@@ -449,7 +450,7 @@ class TinyDAFlowWrapper():
         except Exception:
             logging.error("Couldn't get observation from wrapper\nSample will be rejected.")
             logging.error(traceback.format_exc())
-            data = None
+            data = np.multiply(1e8, np.ones(self.measured_len))
 
         # Get additional data from stdout and stderr of flow 
         with open(self.flow_wrapper.sim.stdout_path, "r", encoding="utf8") as stdout:
