@@ -399,7 +399,7 @@ class TinyDAFlowWrapper():
         """
         regular_loglike = tda.GaussianLogLike(np.full(len(self.observed), 1), self.cov)
 
-        return regular_loglike(data)
+        return regular_loglike.loglike(data)
         #if data is not None:
         #    return regular_loglike.loglike(data)
         #return np.log(0)
