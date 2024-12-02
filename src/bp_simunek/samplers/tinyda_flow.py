@@ -452,6 +452,9 @@ class TinyDAFlowWrapper():
             logging.error(traceback.format_exc())
             data = np.multiply(1e8, np.ones(self.measured_len))
 
+        if not data:
+            data = np.multiply(1e8, np.ones(self.measured_len))
+
         # Get additional data from stdout and stderr of flow 
         with open(self.flow_wrapper.sim.stdout_path, "r", encoding="utf8") as stdout:
             lines = stdout.readlines()
