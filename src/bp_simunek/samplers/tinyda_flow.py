@@ -397,7 +397,7 @@ class TinyDAFlowWrapper():
         Returns:
             _type_: Log-likelihood of model value existing.
         """
-        regular_loglike = tda.GaussianLogLike(np.full(len(self.observed), 1), self.cov)
+        regular_loglike = tda.GaussianLogLike(np.array(self.observed), self.cov)
 
         return regular_loglike.loglike(data)
         #if data is not None:
