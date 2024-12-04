@@ -4,6 +4,7 @@ import traceback
 import logging
 from functools import partial
 from enum import Enum
+import re
 
 import numpy as np
 import scipy.stats as sps
@@ -455,19 +456,33 @@ class TinyDAFlowWrapper():
         if data is None:
             data = np.multiply(1e8, np.ones(self.measured_len))
 
-        # Get additional data from stdout and stderr of flow 
-        with open(self.flow_wrapper.sim.stdout_path, "r", encoding="utf8") as stdout:
-            lines = stdout.readlines()
-            # example of last line output, split by spaces
-            # ['00:00:28.378', '', '', '', '', '', 'MESSAGE.HM', 'Iteration', '3'
-            # , 'abs.', 'difference:', '8.52479e-05', '', 'rel.', 'difference:', '3.11032e-09\n']
-            last_line = lines[-2].split(" ")
-            iteration = last_line[8]
-            rel_diff = last_line[-1][:-2] # remove newline
-            abs_diff = last_line[-5]
-            logging.info(iteration)
-            logging.info(rel_diff)
-            logging.info(abs_diff)
+
+        # Get additional data from stdout and stderr of flow
+        pattern = r"HM Iteration.*\n"
+        param_string = ""
+        try:
+            with open(self.flow_wrapper.sim.stdout_path, "r", encoding="utf8") as stdout:
+                lines = "".join(stdout.readlines())
+                matches = re.findall(pattern, lines)
+                iterations = [int(match.split(" ")[2]) for match in matches]
+                # example of last line output, split by spaces
+                # ['HM', 'Iteration', '3', 'abs.', 'difference:', '8.52479e-05', '', 'rel.', 'difference:', '3.11032e-09\n']
+                iterations += [0]
+                max_iterations = []
+                for idx in np.arange(len(iterations) - 1):
+                    # if we find a drop - new time step
+                    if iterations[idx] >= iterations[idx + 1]:
+                        max_iterations.append(iterations[idx])
+                logging.info(max_iterations)
+                total_max = np.max(max_iterations)
+                total_mean = np.mean(max_iterations)
+
+                param_string = ",".join([f"{total_max:.1f}", f"{total_mean:.1f}"])
+                logging.info(param_string)
+        except Exception:
+            logging.error("Failed to log additional data from flow's output")
+            logging.error(traceback.format_exc())
+            param_string = ",".join([str(-1), str(-1)])
 
 
         # Clean flow output dir
@@ -478,7 +493,9 @@ class TinyDAFlowWrapper():
         elapsed = end - start
         # Write time measurement
         # Await confirmation of logging
-        logstring = ','.join(["{:.2f}".format(elapsed), iteration, abs_diff, rel_diff, str(params.tolist())]) + "\n"
+        elapsed_formatted = f"{elapsed:.2f}"
+        params_formatted = ",".join([str(param) for param in params.tolist()])
+        logstring = ",".join([elapsed_formatted, param_string, params_formatted]) + "\n"
         #logging.info(logstring)
         self.logger_ref.write_to_file.remote(logstring, "observe_times")
 
