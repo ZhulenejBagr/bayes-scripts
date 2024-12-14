@@ -33,6 +33,7 @@ PROPOSAL_DEFAULT = tda.GaussianRandomWalk
 M0_DEFAULT = 5
 DELTA_DEFAULT = 1
 NCR_DEFAULT = 1
+B_STAR_DEFAULT = 1e-6
 
 @ray.remote
 class DataLogger():
@@ -131,6 +132,7 @@ class TinyDAFlowWrapper():
         self.m0 = M0_DEFAULT
         self.delta = DELTA_DEFAULT
         self.ncr = NCR_DEFAULT
+        self.b_star = B_STAR_DEFAULT
 
     def load_sampler_params(self, params):
         # specify number of chains
@@ -150,83 +152,6 @@ class TinyDAFlowWrapper():
         else:
             # TODO check if value is boolean
             self.force_sequential = params[force_seq_key]
-
-        # check if proposal params are specified
-        proposal_scaling_key = "proposal_scaling"
-        if proposal_scaling_key not in params:
-            logging.warning("Unspecified proposal scaling, defaulting to %f", PROPOSAL_SCALING_DEFAULT)
-            self.scaling = PROPOSAL_SCALING_DEFAULT
-        else:
-            self.scaling = params[proposal_scaling_key]
-
-        # proposal selection
-        proposal_key = "proposal"
-        if proposal_key in params:
-            match params[proposal_key]:
-                case "DREAM":
-                    self.proposal = tda.DREAM
-                    logging.info("Using DREAM proposal")
-                case "DREAMZ":
-                    self.proposal = tda.DREAMZ
-                    logging.info("Using DREAMZ proposal")
-                case "Metropolis":
-                    self.proposal = tda.GaussianRandomWalk
-                    logging.info("Using GRW proposal")
-                case _:
-                    self.proposal = tda.GaussianRandomWalk
-                    logging.warning(f"Incorrect sampler specified, defaulting to {PROPOSAL_DEFAULT}")
-        else:
-            logging.warning(f"No sampler specified, defaulting to {PROPOSAL_DEFAULT}")
-            self.sampler = PROPOSAL_DEFAULT
-
-        m0_key = "m0"
-        if m0_key in params:
-            self.m0 = params[m0_key]
-        else:
-            self.m0 = M0_DEFAULT
-
-        delta_key = "delta"
-        if delta_key in params:
-            self.delta = params[delta_key]
-        else:
-            self.delta = DELTA_DEFAULT
-
-        ncr_key = "ncr"
-        if ncr_key in params:
-            self.ncr = params[ncr_key]
-        else:
-            self.ncr = NCR_DEFAULT
-
-        # adaptive proposal params
-        proposal_adaptive_key = "proposal_adaptive"
-        if proposal_adaptive_key in params:
-            self.adaptive = params[proposal_adaptive_key]
-
-            global_scaling_key = "proposal_gamma"
-            if global_scaling_key not in params:
-                logging.warning("Unknown proposal gamma, defaulting to %f", GAMMA_DEFAULT)
-                self.gamma = GAMMA_DEFAULT
-            else:
-                self.gamma = params[global_scaling_key]
-            
-            adaptive_period_key = "proposal_adaptivity_period"
-            if adaptive_period_key not in params:
-                logging.warning("Unknown adaptivity period, defaulting to %d", ADAPTIVITY_PERIOD_DEFAULT)
-                self.adaptivity_period = ADAPTIVITY_PERIOD_DEFAULT
-            else:
-                self.adaptivity_period = params[adaptive_period_key]
-
-        else:
-            logging.warning("Unspecified whether to adapt, defaulting to %s", str(ADAPTIVITY_DEFAULT))
-            self.adaptive = ADAPTIVITY_DEFAULT
-
-        # check for noise std
-        noise_std_key = "noise_std"
-        if noise_std_key not in params:
-            logging.info("Noise standard deviation unspecified, defaulting to %f", NOISE_STD_DEFAULT)
-            self.noise_std = NOISE_STD_DEFAULT
-        else:
-            self.noise_std = params[noise_std_key]
 
         # get number of samples to sample
         sample_count_key = "sample_count"
@@ -260,6 +185,97 @@ class TinyDAFlowWrapper():
                 self.mlda_levels = MLDA_LEVELS_DEFAULT
             else:
                 self.mlda_levels = params[mlda_levels_key]
+
+        # proposal selection
+        proposal_key = "proposal"
+        if proposal_key in params:
+            match params[proposal_key]:
+                case "DREAM":
+                    self.proposal = tda.DREAM
+                    logging.info("Using DREAM proposal")
+                case "DREAMZ":
+                    self.proposal = tda.DREAMZ
+                    logging.info("Using DREAMZ proposal")
+                case "Metropolis":
+                    self.proposal = tda.GaussianRandomWalk
+                    logging.info("Using GRW proposal")
+                case _:
+                    self.proposal = tda.GaussianRandomWalk
+                    logging.warning(f"Incorrect sampler specified, defaulting to {PROPOSAL_DEFAULT}")
+        else:
+            logging.warning(f"No sampler specified, defaulting to {PROPOSAL_DEFAULT}")
+            self.sampler = PROPOSAL_DEFAULT
+
+        if self.proposal is tda.GaussianRandomWalk:
+              # check if proposal params are specified
+            proposal_scaling_key = "proposal_scaling"
+            if proposal_scaling_key in params:
+                self.scaling = params[proposal_scaling_key]
+            else:
+                self.scaling = PROPOSAL_SCALING_DEFAULT
+                logging.warning("Unspecified proposal scaling, defaulting to %f", PROPOSAL_SCALING_DEFAULT)
+
+
+        if self.proposal in [tda.DREAMZ, tda.DREAM]:
+            m0_key = "m0"
+            if m0_key in params:
+                self.m0 = params[m0_key]
+            else:
+                self.m0 = M0_DEFAULT
+                logging.warning("m0 not specified, defaulting to %d", M0_DEFAULT)
+
+            delta_key = "delta"
+            if delta_key in params:
+                self.delta = params[delta_key]
+            else:
+                self.delta = DELTA_DEFAULT
+                logging.warning("delta not specified, defaulting to %d", DELTA_DEFAULT)
+
+            ncr_key = "ncr"
+            if ncr_key in params:
+                self.ncr = params[ncr_key]
+            else:
+                self.ncr = NCR_DEFAULT
+                logging.warning("ncr not specified, defaulting to %d", NCR_DEFAULT)
+
+            b_star_key = "b_star"
+            if b_star_key in params:
+                self.b_star = params[b_star_key]
+            else:
+                self.b_star = B_STAR_DEFAULT
+                logging.warning("b_star not specified, defaulting to %f", B_STAR_DEFAULT)
+
+        # adaptive proposal params
+        proposal_adaptive_key = "proposal_adaptive"
+        if proposal_adaptive_key in params:
+            self.adaptive = params[proposal_adaptive_key]
+
+            global_scaling_key = "proposal_gamma"
+            if global_scaling_key not in params:
+                logging.warning("Unknown proposal gamma, defaulting to %f", GAMMA_DEFAULT)
+                self.gamma = GAMMA_DEFAULT
+            else:
+                self.gamma = params[global_scaling_key]
+
+            adaptive_period_key = "proposal_adaptivity_period"
+            if adaptive_period_key not in params:
+                logging.warning("Unknown adaptivity period, defaulting to %d", ADAPTIVITY_PERIOD_DEFAULT)
+                self.adaptivity_period = ADAPTIVITY_PERIOD_DEFAULT
+            else:
+                self.adaptivity_period = params[adaptive_period_key]
+
+        else:
+            logging.warning("Unspecified whether to adapt, defaulting to %s", str(ADAPTIVITY_DEFAULT))
+            self.adaptive = ADAPTIVITY_DEFAULT
+
+        # check for noise std
+        noise_std_key = "noise_std"
+        if noise_std_key not in params:
+            logging.info("Noise standard deviation unspecified, defaulting to %f", NOISE_STD_DEFAULT)
+            self.noise_std = NOISE_STD_DEFAULT
+        else:
+            self.noise_std = params[noise_std_key]
+
 
     def create_proposal_matrix(self):
         dists = [prior["dist"] for prior in self.priors]
@@ -328,10 +344,11 @@ class TinyDAFlowWrapper():
             proposal = tda.GaussianRandomWalk(proposal_cov, self.scaling, self.adaptive, self.gamma, self.adaptivity_period)
         elif self.proposal == tda.DREAMZ:
             logging.info("Using DREAMZ")
-            proposal = tda.DREAMZ(self.m0, self.delta, nCR=self.ncr)
+            proposal = tda.DREAMZ(self.m0, self.delta, nCR=self.ncr, adaptive=self.adaptive, b_star=self.b_star)
+            logging.info(proposal.b_star)
         elif self.proposal == tda.DREAM:
             logging.info("Using DREAM")
-            proposal = tda.DREAM(self.m0, self.delta, nCR=self.ncr)
+            proposal = tda.DREAM(self.m0, self.delta, nCR=self.ncr, adaptive=self.adaptive, b_star=self.b_star)
 
 
         # sample from prior to give all chains a different starting point
@@ -473,12 +490,10 @@ class TinyDAFlowWrapper():
                     # if we find a drop - new time step
                     if iterations[idx] >= iterations[idx + 1]:
                         max_iterations.append(iterations[idx])
-                logging.info(max_iterations)
                 total_max = np.max(max_iterations)
                 total_mean = np.mean(max_iterations)
 
                 param_string = ",".join([f"{total_max:.1f}", f"{total_mean:.1f}"])
-                logging.info(param_string)
         except Exception:
             logging.error("Failed to log additional data from flow's output")
             logging.error(traceback.format_exc())
