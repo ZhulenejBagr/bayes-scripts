@@ -36,7 +36,7 @@ sampler_parameters:
   # how many samples to collect
   sample_count: 2000
   # how many samples to scrap
-  tune_count: 200
+  tune_count: 0
   # how many chains to run
   chain_count: 2
   # whether to force sequential sampling, even with chains > 1 and ray present
@@ -50,14 +50,9 @@ sampler_parameters:
   # whether to adapt scaling
   proposal_adaptive: True
   # how often to adapt scaling
-  proposal_adaptivity_period: 10
+  proposal_adaptivity_period: 20
   # adaptivity coefficient
   proposal_gamma: 1.05
-  # whether to use MLDA or not
-  mlda: False
-  # number of MLDA levels
-  mlda_levels: 2
-
 
 # types of collected data
 collect_results:

@@ -36,7 +36,7 @@ sampler_parameters:
   # how many samples to collect
   sample_count: 2000
   # how many samples to scrap
-  tune_count: 200
+  tune_count: 0
   # how many chains to run
   chain_count: 2
   # whether to force sequential sampling, even with chains > 1 and ray present
@@ -45,23 +45,15 @@ sampler_parameters:
   noise_std: 750
   # proposal to use
   proposal: "DREAMZ"
-  # constant that multiplies prior's std to construct proposal std
-  proposal_scaling: 0.5
   # whether to adapt scaling
   proposal_adaptive: True
   # how often to adapt scaling
-  proposal_adaptivity_period: 10
-  # adaptivity coefficient
-  proposal_gamma: 1.05
-  # whether to use MLDA or not
-  mlda: False
-  # number of MLDA levels
-  mlda_levels: 2
-
+  proposal_adaptivity_period: 20
+  proposal_gamma: 0.05
   m0: 100
   delta: 3
   lcr: 5
-
+  b_star: 0.001
 
 # types of collected data
 collect_results:
