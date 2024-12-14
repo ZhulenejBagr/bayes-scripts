@@ -83,7 +83,7 @@ class Flow123dSimulation:
             return res
         except ValueError:
             print("flow_wrapper failed for unknown reason.")
-            return -1000, []
+            return -1000, np.empty(0)
 
     def calculate(self, config_dict):
         """
@@ -310,7 +310,7 @@ class Flow123dSimulation:
 
 
     def prepare_mesh(self, config_dict, cut_tunnel):
-        if config_dict["sampler_parameters"]["mlda"]:
+        if "mlda" in config_dict["sampler_parameters"] and config_dict["sampler_parameters"]["mlda"] is True:
             level = config_dict["sampler_parameters"]["level"]
             mesh_name = config_dict["geometry"]["mesh_name"][level]
         else:
