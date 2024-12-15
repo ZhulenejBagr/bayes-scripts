@@ -1,15 +1,16 @@
 import os
+import logging
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.patches as mpt
 import arviz as az
 import numpy as np
 import scipy.stats as sps
-from bp_simunek.samplers.idata_tools import read_idata_from_file
-from bp_simunek.plotting.plotting_tools import save_plot
+from ..samplers.idata_tools import read_idata_from_file
+from ..plotting.plotting_tools import save_plot
 from definitions import ROOT_DIR
 
-def plot_pressures(idata, exp, times):
+def plot_pressures(idata: az.InferenceData, exp, times):
     plt.figure()
     plt.xlabel("Čas [den]")
     plt.ylabel("Tlaková výška [m]")
@@ -101,40 +102,113 @@ def plot_pressures(idata, exp, times):
     #plt.legend(handles, labels)
     return
 
+def corr_progression_plot(idata: az.InferenceData, window_size):
+    draws = idata.posterior.sizes["draw"]
+    starts = np.arange(0, draws - window_size)
+    ess_list = {param: [] for param in idata.posterior.data_vars}
+    r_hat_list = {param: [] for param in idata.posterior.data_vars}
+
+    for start in starts:
+        subset = idata.sel(draw=slice(start, start + window_size))
+        ess = az.ess(subset)
+        rhat = az.rhat(subset)
+        for param in ess.data_vars:
+            ess_list[param] += [ess[param].values.tolist()]
+            r_hat_list[param] += [rhat[param].values.tolist()]
+
+    fig, axes = plt.subplots(2, 2, width_ratios=[0.75, 0.25])
+    fig.set_figwidth(16)
+    fig.set_figheight(9)
+    axes[0, 0].set_xlabel("Začátek okna [iterace]")
+    axes[0, 0].set_ylabel("Effective Sample Size []")
+    axes[0, 0].set_title(f"Vývoj ESS s oknem {window_size}")
+    refs = []
+    for param, ess in ess_list.items():
+        refs += axes[0, 0].plot(starts, ess, linewidth=0.5)
+
+    axes[0, 1].legend(refs, list(ess_list.keys()))
+    axes[0, 1].axis("off")
+
+    axes[1, 0].set_xlabel("Začátek okna [iterace]")
+    axes[1, 0].set_ylabel("r-hat []")
+    axes[1, 0].set_title(f"Vývoj r-hat s oknem {window_size}")
+    refs = []
+    for param, r_hat in r_hat_list.items():
+        refs += axes[1, 0].plot(starts, r_hat, linewidth=0.5)
+
+    axes[1, 1].legend(refs, list(r_hat_list.keys()))
+    axes[1, 1].axis("off")
 
 
-def generate_all_flow_plots(idata, folder):
+def generate_all_flow_plots(idata: az.InferenceData, folder, config=None):
     az.plot_pair(idata, kind="kde")
     save_plot("pair_plot.pdf", folder_path=folder)
     az.plot_trace(idata)
     plt.tight_layout()
     save_plot("trace_plot.pdf", folder_path=folder)
 
+    corr_progression_plot(idata, 100)
+    save_plot("corr_progression_plot.pdf", folder_path=folder)
+
     axes = az.plot_posterior(idata, grid=[4, 2])
 
-    prior_means = [
-        -16.4340685618576,
-        24.8176103991685,
-        17.6221730477346,
-        16.2134058307626,
-        #17.9098551201864,
-        -48.8651125766410,
-        33,
-        -36.8413614879047,
-        1.79175946922806
-    ]
+    if config is not None:
 
-    prior_stds = [
-        3,
-        0.7,
-        0.5,
-        0.5,
-        #0.3,
-        3.0,
-        14,
-        0.15,
-        0.15
-    ]
+        priors = config["parameters"]
+
+        prior_means = []
+        prior_stds = []
+
+
+        for prior in priors:
+            prior_type = prior["type"]
+
+            match prior_type:
+                case "lognorm":
+                    mu, sigma = prior["bounds"]
+                case "truncnorm":
+                    _, _, mu, sigma = prior["bounds"]
+
+            prior_means += [mu]
+            prior_stds += [sigma]
+            exp = config.observed
+
+    else:
+        prior_means = [
+           -16.4340685618576,
+            24.8176103991685,
+            17.6221730477346,
+            16.2134058307626,
+            #17.9098551201864,
+            -48.8651125766410,
+            33,
+            -36.8413614879047,
+            1.79175946922806
+        ]
+
+        prior_stds = [
+            3,
+            0.7,
+            0.5,
+            0.5,
+            #0.3,
+            3.0,
+            14,
+            0.15,
+            0.15
+        ]
+
+        exp = [
+            262.00970108619634, 62.843249986131575, 48.08262448100288,
+            42.681038591463576, 42.93917678143266, 45.08236786944522,
+            49.94181194643198, 56.007637102484054, 61.35265637436543,
+            60.28968371081408, 59.66429769637641, 60.60653451083565,
+            79.19950050268767, 81.48672728810196, 91.97984245675362,
+            90.06164513633016, 89.22193608913719, 79.33002552259684,
+            79.32797971798708, 82.6842177813621, 77.31306993967296,
+            78.0024018399629, 85.3324173501424, 75.85212647719274,
+            82.55973059689288, 89.09948153884811]
+
 
     for x, axrow in enumerate(axes):
         axrow_len = len(axrow)
@@ -163,19 +237,6 @@ def generate_all_flow_plots(idata, folder):
         summary += f"\n\n{accepted} accepted\n{rejected} rejected\n{accepted / (accepted + rejected)} acceptance rate"
         file.writelines(summary)
 
-
-    # temporarily add constant data, eventually load data from config
-    exp = [
-        262.00970108619634, 62.843249986131575, 48.08262448100288,
-        42.681038591463576, 42.93917678143266, 45.08236786944522,
-        49.94181194643198, 56.007637102484054, 61.35265637436543,
-        60.28968371081408, 59.66429769637641, 60.60653451083565,
-        79.19950050268767, 81.48672728810196, 91.97984245675362,
-        90.06164513633016, 89.22193608913719, 79.33002552259684,
-        79.32797971798708, 82.6842177813621, 77.31306993967296,
-        78.0024018399629, 85.3324173501424, 75.85212647719274,
-        82.55973059689288, 89.09948153884811]
-
     times = [0, 10, 17, 27, 37, 47, 57, 67, 77, 87, 97, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340, 360, 365]
 
 
@@ -202,8 +263,6 @@ def compute_accepted(idata):
 
 if __name__ == "__main__":
     idata_name = "10x3000_mlda_0.idata"
-    #folder_path = os.path.join(ROOT_DIR, "data", "10x1000_mlda_1")
     folder_path = os.path.join(ROOT_DIR, "data", idata_name.split(".")[0])
     idata = read_idata_from_file(idata_name, folder_path)
-    idata = idata.sel(draw=slice(1000, None))
-    generate_all_flow_plots(idata, folder_path)
+    generate_all_flow_plots(idata,folder_path)
