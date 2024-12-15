@@ -171,7 +171,7 @@ def generate_all_flow_plots(idata: az.InferenceData, folder, config=None):
 
             prior_means += [mu]
             prior_stds += [sigma]
-            exp = config.observed
+            exp = config["observed"]
 
     else:
         prior_means = [
