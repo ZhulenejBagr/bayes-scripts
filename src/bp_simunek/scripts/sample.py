@@ -53,11 +53,11 @@ def sample():
     idata = tinyda_wrapper.sample()
 
     # save results
-    idata_name = f"{tinyda_wrapper.number_of_chains}x{tinyda_wrapper.sample_count}_mlda_0.idata"
+    idata_name = f"{tinyda_wrapper.number_of_chains}x{tinyda_wrapper.sample_count}.idata"
     save_idata_to_file(idata, folder_path=work_dir, filename=idata_name)
 
     # generate plots
-    generate_all_flow_plots(idata, folder=work_dir)
+    generate_all_flow_plots(idata, config=tinyda_wrapper.config, folder=work_dir)
 
 if __name__ == "__main__":
     sample()
