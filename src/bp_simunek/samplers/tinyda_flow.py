@@ -98,7 +98,7 @@ class TinyDAFlowWrapper():
         self.config = self.flow_wrapper.sim._config
         # length of measured data
         self.measured_len = -1
-        # time and parameters info of simulations
+        # time steps of simulation
         self.observe_times = []
         # reference to shared object for logging
         self.logger_ref = None
@@ -320,6 +320,7 @@ class TinyDAFlowWrapper():
         logging.info("Using following noise covariance matrix")
         logging.info(noise_cov)
         self.observed = values
+        self.config["observed"] = self.observed
         self.cov = noise_cov
         self.measured_len = len(values)
 
