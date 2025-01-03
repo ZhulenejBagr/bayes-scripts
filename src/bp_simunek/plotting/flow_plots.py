@@ -107,37 +107,73 @@ def corr_progression_plot(idata: az.InferenceData, window_size):
     starts = np.arange(0, draws - window_size)
     ess_list = {param: [] for param in idata.posterior.data_vars}
     r_hat_list = {param: [] for param in idata.posterior.data_vars}
+    mean_list = {param: [] for param in idata.posterior.data_vars}
+    std_list = {param: [] for param in idata.posterior.data_vars}
 
+    # process all metrics for all data windows
     for start in starts:
-        subset = idata.sel(draw=slice(start, start + window_size))
+        subset = idata.isel(draw=slice(start, start + window_size))
+        print(subset.posterior.sizes["draw"])
         ess = az.ess(subset)
         rhat = az.rhat(subset)
+        posterior = subset.posterior
         for param in ess.data_vars:
             ess_list[param] += [ess[param].values.tolist()]
             r_hat_list[param] += [rhat[param].values.tolist()]
+            values = posterior[param]
+            mean_list[param] += [values.mean()]
+            std_list[param] += [np.log10(values.std())]
 
-    fig, axes = plt.subplots(2, 2, width_ratios=[0.75, 0.25])
-    fig.set_figwidth(16)
-    fig.set_figheight(9)
-    axes[0, 0].set_xlabel("Začátek okna [iterace]")
-    axes[0, 0].set_ylabel("Effective Sample Size []")
-    axes[0, 0].set_title(f"Vývoj ESS s oknem {window_size}")
+    # first 2 plots - ESS and r-hat
+    fig_corr, axes_corr = plt.subplots(2, 2, width_ratios=[0.75, 0.25])
+    fig_corr.set_figwidth(16)
+    fig_corr.set_figheight(9)
+    axes_corr[0, 0].set_xlabel("Začátek okna [iterace]")
+    axes_corr[0, 0].set_ylabel("Effective Sample Size []")
+    axes_corr[0, 0].set_title(f"Vývoj ESS s oknem {window_size}")
     refs = []
     for param, ess in ess_list.items():
-        refs += axes[0, 0].plot(starts, ess, linewidth=0.5)
+        refs += axes_corr[0, 0].plot(starts, ess, linewidth=0.5)
 
-    axes[0, 1].legend(refs, list(ess_list.keys()))
-    axes[0, 1].axis("off")
+    axes_corr[0, 1].legend(refs, list(ess_list.keys()))
+    axes_corr[0, 1].axis("off")
 
-    axes[1, 0].set_xlabel("Začátek okna [iterace]")
-    axes[1, 0].set_ylabel("r-hat []")
-    axes[1, 0].set_title(f"Vývoj r-hat s oknem {window_size}")
+    axes_corr[1, 0].set_xlabel("Začátek okna [iterace]")
+    axes_corr[1, 0].set_ylabel("r-hat []")
+    axes_corr[1, 0].set_title(f"Vývoj r-hat s oknem {window_size}")
     refs = []
     for param, r_hat in r_hat_list.items():
-        refs += axes[1, 0].plot(starts, r_hat, linewidth=0.5)
+        refs += axes_corr[1, 0].plot(starts, r_hat, linewidth=0.5)
 
-    axes[1, 1].legend(refs, list(r_hat_list.keys()))
-    axes[1, 1].axis("off")
+    axes_corr[1, 1].legend(refs, list(r_hat_list.keys()))
+    axes_corr[1, 1].axis("off")
+
+    # second pair - mean and std
+
+    fig_stats, axes_stats = plt.subplots(2, 2)
+    fig_stats.set_figwidth(16)
+    fig_stats.set_figheight(9)
+    axes_stats[0, 0].set_xlabel("Začátek okna [iterace]")
+    axes_stats[0, 0].set_ylabel("Střední hodnota []")
+    axes_stats[0, 0].set_title(f"Vývoj střední hodnoty s oknem {window_size}")
+    refs = []
+    for param, mean in mean_list.items():
+        refs += axes_stats[0, 0].plot(starts, mean, linewidth=0.5)
+
+    axes_stats[0, 1].legend(refs, list(ess_list.keys()))
+    axes_stats[0, 1].axis("off")
+
+    axes_stats[1, 0].set_xlabel("Začátek okna [iterace]")
+    axes_stats[1, 0].set_ylabel("Desítkový logaritmus rozptylu []")
+    axes_stats[1, 0].set_title(f"Vývoj rozpylu s oknem {window_size}")
+    refs = []
+    for param, std in std_list.items():
+        refs += axes_stats[1, 0].plot(starts, std, linewidth=0.5)
+
+    axes_stats[1, 1].legend(refs, list(r_hat_list.keys()))
+    axes_stats[1, 1].axis("off")
+
+    return fig_corr, fig_stats
 
 
 def generate_all_flow_plots(idata: az.InferenceData, folder, config=None):
