@@ -15,7 +15,7 @@ from bp_simunek.plotting.flow_plots import generate_all_flow_plots
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
-pytest.mark.skip
+#@pytest.mark.skip
 def test_simulation11():
     #ray.init(runtime_env={"working_dir": ROOT_DIR})
     os.chdir(script_dir)
