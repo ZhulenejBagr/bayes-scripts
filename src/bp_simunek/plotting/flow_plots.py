@@ -102,7 +102,7 @@ def plot_pressures(idata: az.InferenceData, exp, times):
     #plt.legend(handles, labels)
     return
 
-def corr_progression_plot(idata: az.InferenceData, window_size):
+def data_window_plots(idata: az.InferenceData, window_size):
     draws = idata.posterior.sizes["draw"]
     starts = np.arange(0, draws - window_size)
     ess_list = {param: [] for param in idata.posterior.data_vars}
@@ -183,8 +183,9 @@ def generate_all_flow_plots(idata: az.InferenceData, folder, config=None):
     plt.tight_layout()
     save_plot("trace_plot.pdf", folder_path=folder)
 
-    corr_progression_plot(idata, 100)
-    save_plot("corr_progression_plot.pdf", folder_path=folder)
+    corr_plot, stats_plot = data_window_plots(idata, 100)
+    save_plot("corr_progression_plot.pdf", folder_path=folder, fig=corr_plot)
+    save_plot("stats_progression_plot.pdf", folder_path=folder, fig=stats_plot)
 
     axes = az.plot_posterior(idata, grid=[4, 2])
 
