@@ -36,6 +36,8 @@ def plot_pressures(idata: az.InferenceData, exp, times):
         observed = idata["posterior_predictive"][key]
         mean = observed.mean()
         std = observed.std()
+        minimum = observed.min()
+        maximum = observed.max()
         means.append(mean)
         medians.append(np.median(observed))
         quantiles_95.append(np.quantile(observed, 0.95))
@@ -43,10 +45,8 @@ def plot_pressures(idata: az.InferenceData, exp, times):
         quantiles_25.append(np.quantile(observed, 0.25))
         quantiles_5.append(np.quantile(observed, 0.05))
 
-        minimum = np.min(observed)
-        maximum = np.max(observed)
 
-        linspace = np.linspace(minimum, maximum, areas)
+        """  linspace = np.linspace(minimum, maximum, areas)
         
         interp_linspace = np.divide(np.add(prev_linspace, linspace), 2)
         interp_time = (prev_time + times[time_idx]) / 2
@@ -68,7 +68,7 @@ def plot_pressures(idata: az.InferenceData, exp, times):
 
         prev_time = times[time_idx]
         prev_linspace = linspace
-        prev_normhist = norm_hist
+        prev_normhist = norm_hist """
 
     quantiles_95_plot, = plt.plot(times, quantiles_95, color="blue", linewidth=1)
     #quantiles_75_plot, = plt.plot(times, quantiles_75)
@@ -76,7 +76,7 @@ def plot_pressures(idata: az.InferenceData, exp, times):
     quantiles_5_plot, = plt.plot(times, quantiles_5, color="darkblue", linewidth=1)
     median_plot, = plt.plot(times, medians, color="indigo", linewidth=1, linestyle="dashed")
 
-    filled_patch = mpt.Patch(color="orange", label="Pravděpodobnostní hustota inverze")
+    #filled_patch = mpt.Patch(color="orange", label="Pravděpodobnostní hustota inverze")
 
     plt.legend(
         [
@@ -86,7 +86,7 @@ def plot_pressures(idata: az.InferenceData, exp, times):
             #quantiles_75_plot, 
             #quantiles_25_plot, 
             quantiles_5_plot,
-            filled_patch
+            #filled_patch
         ], 
         [
             "Naměřená data",
@@ -95,7 +95,7 @@ def plot_pressures(idata: az.InferenceData, exp, times):
             #"75. kvantil inverze",
             #"25. kvantil inverze",
             "5. kvantil inverze",
-            "Pravděpodobnostní hustota inverze"
+            #"Pravděpodobnostní hustota inverze"
         ])
     #handles, labels = plt.gca().get_legend_handles_labels()
     #handles.extend([filled_patch])
