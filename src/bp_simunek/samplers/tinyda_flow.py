@@ -366,6 +366,19 @@ class TinyDAFlowWrapper():
         # check and save samples
         idata = tda.to_inference_data(chain=samples, parameter_names=[prior["name"] for prior in self.priors], burnin=self.tune_count)
 
+        # add priod info to idata
+        for idx, param in enumerate(idata["posterior"]):
+            prior = self.priors[idx]
+            bounds = prior["params"]
+            match prior["type"]:
+                case "lognorm":
+                    mean, std = bounds
+                case "truncnorm":
+                    _, _, mean, std = bounds
+
+            idata["posterior"][param].attrs["prior_mean"] = mean
+            idata["posterior"][param].attrs["prior_std"] = std
+
         return idata
 
     def setup_priors(self, config):
