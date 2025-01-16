@@ -1,5 +1,6 @@
 import os
 import logging
+import time
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.patches as mpt
@@ -7,7 +8,7 @@ import arviz as az
 import numpy as np
 import scipy.stats as sps
 from ..samplers.idata_tools import read_idata_from_file
-from ..plotting.plotting_tools import save_plot
+from ..plotting.plotting_tools import save_plot, save_plots_pdf_pages
 from definitions import ROOT_DIR
 
 def plot_pressures(idata: az.InferenceData, exp, times):
@@ -33,6 +34,8 @@ def plot_pressures(idata: az.InferenceData, exp, times):
     prev_linspace = np.ones(areas) * 275
     prev_normhist = np.ones(areas) / areas
     for time_idx, key in enumerate(obs_keys):
+        #observed_unfiltered = idata["posterior_predictive"][key]
+        #observed = observed_unfiltered.where((observed_unfiltered <= 500) & (observed_unfiltered > 0))
         observed = idata["posterior_predictive"][key]
         mean = observed.mean()
         std = observed.std()
@@ -105,24 +108,23 @@ def plot_pressures(idata: az.InferenceData, exp, times):
 def data_window_plots(idata: az.InferenceData, window_size):
     draws = idata.posterior.sizes["draw"]
     starts = np.arange(0, draws - window_size)
-    ess_list = {param: [] for param in idata.posterior.data_vars}
-    r_hat_list = {param: [] for param in idata.posterior.data_vars}
-    mean_list = {param: [] for param in idata.posterior.data_vars}
-    std_list = {param: [] for param in idata.posterior.data_vars}
+    ess_list = {param: np.empty(0, dtype=float) for param in idata.posterior.data_vars}
+    r_hat_list = {param: np.empty(0, dtype=float) for param in idata.posterior.data_vars}
+    mean_list = {param: np.empty(0, dtype=float) for param in idata.posterior.data_vars}
+    std_list = {param: np.empty(0, dtype=float) for param in idata.posterior.data_vars}
 
     # process all metrics for all data windows
     for start in starts:
         subset = idata.isel(draw=slice(start, start + window_size))
-        print(subset.posterior.sizes["draw"])
         ess = az.ess(subset)
-        rhat = az.rhat(subset)
+        r_hat = az.rhat(subset)
         posterior = subset.posterior
         for param in ess.data_vars:
-            ess_list[param] += [ess[param].values.tolist()]
-            r_hat_list[param] += [rhat[param].values.tolist()]
+            ess_list[param] = np.append(ess_list[param], ess[param].values.tolist())
+            r_hat_list[param] = np.append(r_hat_list[param], r_hat[param].values.tolist())
             values = posterior[param]
-            mean_list[param] += [values.mean()]
-            std_list[param] += [np.log10(values.std())]
+            mean_list[param] = np.append(mean_list[param], values.mean())
+            std_list[param] = np.append(std_list[param], values.std())
 
     # first 2 plots - ESS and r-hat
     fig_corr, axes_corr = plt.subplots(2, 2, width_ratios=[0.75, 0.25])
@@ -150,30 +152,30 @@ def data_window_plots(idata: az.InferenceData, window_size):
 
     # second pair - mean and std
 
-    fig_stats, axes_stats = plt.subplots(2, 2)
-    fig_stats.set_figwidth(16)
-    fig_stats.set_figheight(9)
-    axes_stats[0, 0].set_xlabel("Začátek okna [iterace]")
-    axes_stats[0, 0].set_ylabel("Střední hodnota []")
-    axes_stats[0, 0].set_title(f"Vývoj střední hodnoty s oknem {window_size}")
-    refs = []
-    for param, mean in mean_list.items():
-        refs += axes_stats[0, 0].plot(starts, mean, linewidth=0.5)
+    figs_stats = []
+    for param in mean_list:
+        means = mean_list[param]
+        stds = std_list[param]
 
-    axes_stats[0, 1].legend(refs, list(ess_list.keys()))
-    axes_stats[0, 1].axis("off")
+        fig_param, axes_param = plt.subplots(figsize=(16, 9))
+        axes_param.set_title(f"Vývoj střední a rozpylu parametru {param} s oknem {window_size}")
+        axes_param.set_xlabel("Začátek okna [iterace]")
+        axes_param.set_ylabel("Hodnota parametru")
+        axes_param.grid(True)
 
-    axes_stats[1, 0].set_xlabel("Začátek okna [iterace]")
-    axes_stats[1, 0].set_ylabel("Desítkový logaritmus rozptylu []")
-    axes_stats[1, 0].set_title(f"Vývoj rozpylu s oknem {window_size}")
-    refs = []
-    for param, std in std_list.items():
-        refs += axes_stats[1, 0].plot(starts, std, linewidth=0.5)
+        axes_param.plot(starts, means, label="střední hodnota")
+        for i in range(1, 100):
+            alpha = (1 - (i / 100))  ** 2 * 0.5
+            axes_param.fill_between(
+                starts,
+                means - stds * (i / 100),
+                means + stds * (i / 100),
+                alpha = alpha,
+                color = "red"
+            )
+        figs_stats += [fig_param]
 
-    axes_stats[1, 1].legend(refs, list(r_hat_list.keys()))
-    axes_stats[1, 1].axis("off")
-
-    return fig_corr, fig_stats
+    return fig_corr, figs_stats
 
 
 def generate_all_flow_plots(idata: az.InferenceData, folder, config=None):
@@ -183,11 +185,10 @@ def generate_all_flow_plots(idata: az.InferenceData, folder, config=None):
     plt.tight_layout()
     save_plot("trace_plot.pdf", folder_path=folder)
 
-    corr_plot, stats_plot = data_window_plots(idata, 100)
+    corr_plot, stats_plots = data_window_plots(idata, 100)
     save_plot("corr_progression_plot.pdf", folder_path=folder, fig=corr_plot)
-    save_plot("stats_progression_plot.pdf", folder_path=folder, fig=stats_plot)
+    save_plots_pdf_pages("stats_progression_plot.pdf", folder_path=folder, figs=stats_plots)
 
-    axes = az.plot_posterior(idata, grid=[4, 2])
 
     if config is not None:
 
@@ -247,6 +248,7 @@ def generate_all_flow_plots(idata: az.InferenceData, folder, config=None):
             82.55973059689288, 89.09948153884811]
 
 
+    axes = az.plot_posterior(idata, grid=[4, 2])
     for x, axrow in enumerate(axes):
         axrow_len = len(axrow)
         for y, ax in enumerate(axrow):
@@ -299,7 +301,8 @@ def compute_accepted(idata):
 
 
 if __name__ == "__main__":
-    idata_name = "10x3000_mlda_0.idata"
-    folder_path = os.path.join(ROOT_DIR, "data", idata_name.split(".")[0])
+    idata_name = "2x2000.idata"
+    folder_path = os.path.join(ROOT_DIR, "data", "dataset3", "2x2000_DREAMZ")
     idata = read_idata_from_file(idata_name, folder_path)
+    idata = idata.sel(draw=slice(100, None))
     generate_all_flow_plots(idata,folder_path)
