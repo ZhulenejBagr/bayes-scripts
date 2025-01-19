@@ -76,10 +76,11 @@ sampler_parameters:
   # how often to adapt scaling
   proposal_adaptivity_period: 20
   proposal_gamma: 0.05
-  m0: 100
+  m0: 5
   delta: 3
-  lcr: 5
+  lcr: 8
   b_star: 0.001
+  archive_limit: 100
 
 # types of collected data
 collect_results:
