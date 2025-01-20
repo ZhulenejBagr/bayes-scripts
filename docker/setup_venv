@@ -23,4 +23,4 @@ $venv_pip install -v -r $SRC_ROOT/requirements.txt
 # install repository
 $venv_pip install -v -e .
 
-bash ./docker/install_custom_tinyda.sh venv/ /tmp/tinyDA
+bash ./docker/install_custom_tinyda.sh venv/ tinyDA/
