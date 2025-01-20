@@ -34,6 +34,7 @@ M0_DEFAULT = 5
 DELTA_DEFAULT = 1
 NCR_DEFAULT = 1
 B_STAR_DEFAULT = 1e-6
+ARCHIVE_LIMIT_DEFAULT = 0
 
 @ray.remote
 class DataLogger():
@@ -245,6 +246,12 @@ class TinyDAFlowWrapper():
                 self.b_star = B_STAR_DEFAULT
                 logging.warning("b_star not specified, defaulting to %f", B_STAR_DEFAULT)
 
+            archive_limit_key = "archive_limit"
+            if archive_limit_key in params:
+                self.archive_limit = params[archive_limit_key]
+            else:
+                self.archive_limit = ARCHIVE_LIMIT_DEFAULT
+                logging.warning("archive limit not specified, defaulting to %d", ARCHIVE_LIMIT_DEFAULT)
         # adaptive proposal params
         proposal_adaptive_key = "proposal_adaptive"
         if proposal_adaptive_key in params:
@@ -345,11 +352,11 @@ class TinyDAFlowWrapper():
             proposal = tda.GaussianRandomWalk(proposal_cov, self.scaling, self.adaptive, self.gamma, self.adaptivity_period)
         elif self.proposal == tda.DREAMZ:
             logging.info("Using DREAMZ")
-            proposal = tda.DREAMZ(self.m0, self.delta, nCR=self.ncr, adaptive=self.adaptive, b_star=self.b_star)
+            proposal = tda.DREAMZ(self.m0, self.delta, nCR=self.ncr, adaptive=self.adaptive, b_star=self.b_star, archive_limit=self.archive_limit)
             logging.info(proposal.b_star)
         elif self.proposal == tda.DREAM:
             logging.info("Using DREAM")
-            proposal = tda.DREAM(self.m0, self.delta, nCR=self.ncr, adaptive=self.adaptive, b_star=self.b_star)
+            proposal = tda.DREAM(self.m0, self.delta, nCR=self.ncr, adaptive=self.adaptive, b_star=self.b_star, archive_limit=self.archive_limit)
 
 
         # sample from prior to give all chains a different starting point
