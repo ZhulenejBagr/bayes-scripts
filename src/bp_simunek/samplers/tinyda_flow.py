@@ -252,6 +252,7 @@ class TinyDAFlowWrapper():
             else:
                 self.archive_limit = ARCHIVE_LIMIT_DEFAULT
                 logging.warning("archive limit not specified, defaulting to %d", ARCHIVE_LIMIT_DEFAULT)
+
         # adaptive proposal params
         proposal_adaptive_key = "proposal_adaptive"
         if proposal_adaptive_key in params:
@@ -301,7 +302,8 @@ class TinyDAFlowWrapper():
 
         # setup logging
         logging_files = {
-            "observe_times": os.path.join(self.flow_wrapper.sim._config["work_dir"], "observe_times.txt")
+            "observe_times": os.path.join(self.flow_wrapper.sim._config["work_dir"], "observe_times.txt"),
+            "chain_delay": os.path.join(self.flow_wrapper.sim._config["work_dir"], "chain_delay.txt")
         }
         self.logger_ref = DataLogger.remote(logging_files)
         logging.info("Using following logger files:")
@@ -368,12 +370,12 @@ class TinyDAFlowWrapper():
             prior_values = list(prior_values)
 
         # sampling process
-        samples = tda.sample(posteriors, proposal, self.sample_count, self.number_of_chains, prior_values, 1, force_sequential=self.force_sequential)
+        samples = tda.sample(posteriors, proposal, self.sample_count, self.number_of_chains, prior_values, 1, force_sequential=self.force_sequential, logger_ref=self.logger_ref)
 
         # check and save samples
         idata = tda.to_inference_data(chain=samples, parameter_names=[prior["name"] for prior in self.priors], burnin=self.tune_count)
 
-        # add priod info to idata
+        # add prior info to idata
         for idx, param in enumerate(idata["posterior"]):
             prior = self.priors[idx]
             bounds = prior["params"]
@@ -447,13 +449,6 @@ class TinyDAFlowWrapper():
 
 
     def forward_model(self, params):
-        print(params)
-        # reject automatically if params go negative
-        #if np.any(params <= 0):
-        #    logging.info("Invalid proposal, skipping...")
-        #    logging.info(params)
-        #    return np.zeros(self.observed_len)
-
         # transform parameters via info from priors
         logging.info("Input params:")
         logging.info(params)
@@ -491,6 +486,7 @@ class TinyDAFlowWrapper():
             logging.error(traceback.format_exc())
             data = np.multiply(1e8, np.ones(self.measured_len))
 
+        # Dummy value to force sampler to reject sample
         if data is None:
             data = np.multiply(1e8, np.ones(self.measured_len))
 
