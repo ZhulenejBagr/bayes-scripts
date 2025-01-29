@@ -177,6 +177,85 @@ def data_window_plots(idata: az.InferenceData, window_size):
 
     return fig_corr, figs_stats
 
+def load_csv(folder_path, file):
+    path = os.path.join(folder_path, file)
+    with open(path, "r") as file:
+        lines = file.readlines()
+        n_elements = len(lines[0].split(","))
+        cols_arr = np.empty((0, n_elements))
+        for line in lines:
+            cols = [int(i) for i in line.split(",")]
+            cols_arr = np.vstack((cols_arr, cols))
+
+    return cols_arr
+
+
+def chain_delay_plot(data):
+    cols_avg = np.mean(data, axis=1)
+    cols_mean = np.median(data, axis=1)
+    cols_max = np.max(data, axis=1)
+
+    x_axis = np.arange(0, data.shape[0])
+
+    fig, axes = plt.subplots(2, 1, figsize=(16, 9))
+    axes[0].plot(x_axis, cols_avg, label="průměrné zpoždění")
+    axes[0].plot(x_axis, cols_mean, label="medián zpoždění")
+    axes[0].plot(x_axis, cols_max, label="maximum zpoždění")
+    axes[0].set_xlabel("n-tý přístup k archivu")
+    axes[0].set_ylabel("zpoždění vůči nejrychlejšímu chainu")
+    axes[0].legend()
+    axes[0].grid(True)
+
+    for i in range(data.shape[1]):
+        axes[1].plot(x_axis, data[:, i], label=f"Chain {i}")
+    axes[1].set_xlabel("n-tý přístup k archivu")
+    axes[1].set_ylabel("zpoždění vůči nejrychlejšímu chainu")
+    axes[1].legend(ncol=2, loc="upper left")
+    axes[1].grid(True)
+
+
+def plot_likelihood(idata: az.InferenceData, cutoff=-100):
+    draws = idata.posterior.sizes["draw"]
+    chains = idata.posterior.sizes["chain"]
+    likelihoods = idata["sample_stats"]["likelihood"]
+    likelihoods = np.clip(likelihoods, cutoff, None)
+    x_axis = np.arange(0, draws)
+
+    figs = []
+
+    fig_progression, axes_progression = plt.subplots(2, 1, figsize=(16, 9))
+    fig_progression.suptitle(f"Vývoj log-likelihood v čase (hodnoty pod {cutoff} oříznuty)")
+    axes_progression[0].set_xlabel("Iterace v chainu")
+    axes_progression[0].set_ylabel("Log-likelihood")
+    for chain in np.arange(0, chains):
+        axes_progression[0].plot(x_axis, likelihoods[chain, :], label=f"Chain {chain}")
+
+    likelihood_mean = np.mean(likelihoods, axis=0)
+    likelihood_median = np.median(likelihoods, axis=0)
+    likelihood_min = np.min(likelihoods, axis=0)
+    axes_progression[0].legend(ncol=2, loc="lower right")
+    axes_progression[0].grid(True)
+
+    axes_progression[1].set_xlabel("Iterace v chainu")
+    axes_progression[1].set_ylabel("Log-likelihood")
+    axes_progression[1].plot(x_axis, likelihood_mean, label="Průměrná log-likelihood")
+    axes_progression[1].plot(x_axis, likelihood_median, label="Medián log-likelihood")
+    axes_progression[1].plot(x_axis, likelihood_min, label="Minimum log-likelihood")
+    axes_progression[1].legend(ncol=2, loc="lower right")
+    axes_progression[1].grid(True)
+
+    figs += [fig_progression]
+
+    fig_hist, axes_hist = plt.subplots(figsize=(16, 9))
+    fig_hist.suptitle(f"Histogram log-likelihood (hodnoty pod {cutoff} oříznuty)")
+    axes_hist.set_xlabel("Log-likelihood")
+    axes_hist.set_ylabel("Počet")
+    axes_hist.hist(likelihoods.values.flatten(), bins=100)
+
+    figs += [fig_hist]
+
+    return figs
+
 
 def generate_all_flow_plots(idata: az.InferenceData, folder, config=None):
     az.plot_pair(idata, kind="kde")
