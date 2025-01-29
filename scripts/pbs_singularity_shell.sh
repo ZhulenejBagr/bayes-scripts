@@ -4,7 +4,7 @@
 #PBS -N singularity_sample_script_1000
 #PBS -q charon
 ##PBS -l select=1:ncpus=10:mem=10gb:scratch_local=5gb
-#PBS -l walltime=48:00:00
+#PBS -l walltime=72:00:00
 
 # run fterm sing atleast once to create the image
 #./bin/fterm_sing
