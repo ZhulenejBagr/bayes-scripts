@@ -257,7 +257,7 @@ def plot_likelihood(idata: az.InferenceData, cutoff=-100):
     return figs
 
 
-def generate_all_flow_plots(idata: az.InferenceData, folder, config=None):
+def generate_all_flow_plots(idata: az.InferenceData, folder):
     az.plot_pair(idata, kind="kde")
     save_plot("pair_plot.pdf", folder_path=folder)
     az.plot_trace(idata)
@@ -270,29 +270,17 @@ def generate_all_flow_plots(idata: az.InferenceData, folder, config=None):
     save_plot("corr_progression_plot.pdf", folder_path=folder, fig=corr_plot)
     save_plots_pdf_pages("stats_progression_plot.pdf", folder_path=folder, figs=stats_plots)
 
+    prior_means = []
+    prior_stds = []
+    for param in idata["posterior"].data_vars:
+        mean = idata["posterior"][param].attrs["prior_mean"]
+        std = idata["posterior"][param].attrs["prior_std"]
+        prior_means += [mean]
+        prior_stds += [std]
 
-    if config is not None:
+    exp = idata["sample_stats"].attrs["observed"]
 
-        priors = config["parameters"]
-
-        prior_means = []
-        prior_stds = []
-
-
-        for prior in priors:
-            prior_type = prior["type"]
-
-            match prior_type:
-                case "lognorm":
-                    mu, sigma = prior["bounds"]
-                case "truncnorm":
-                    _, _, mu, sigma = prior["bounds"]
-
-            prior_means += [mu]
-            prior_stds += [sigma]
-            exp = config["observed"]
-
-    else:
+    """ else:
         prior_means = [
            -16.4340685618576,
             24.8176103991685,
@@ -326,7 +314,7 @@ def generate_all_flow_plots(idata: az.InferenceData, folder, config=None):
             90.06164513633016, 89.22193608913719, 79.33002552259684,
             79.32797971798708, 82.6842177813621, 77.31306993967296,
             78.0024018399629, 85.3324173501424, 75.85212647719274,
-            82.55973059689288, 89.09948153884811]
+            82.55973059689288, 89.09948153884811] """
 
 
     axes = az.plot_posterior(idata, grid=[4, 2])
