@@ -57,7 +57,7 @@ def sample():
     save_idata_to_file(idata, folder_path=work_dir, filename=idata_name)
 
     # generate plots
-    generate_all_flow_plots(idata, config=tinyda_wrapper.config, folder=work_dir)
+    generate_all_flow_plots(idata, folder=work_dir)
 
 if __name__ == "__main__":
     sample()
