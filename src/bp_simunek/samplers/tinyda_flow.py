@@ -388,6 +388,9 @@ class TinyDAFlowWrapper():
             idata["posterior"][param].attrs["prior_mean"] = mean
             idata["posterior"][param].attrs["prior_std"] = std
 
+        # add observed data to idata
+        idata["sample_stats"].attrs["observed"] = self.observed
+
         return idata
 
     def setup_priors(self, config):
