@@ -416,9 +416,9 @@ class TinyDAFlowWrapper():
                     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.truncnorm.html
                     #a, b = (a_trunc - mu) / sigma, (b_trunc - mu) / sigma
                     #prior = sps.truncnorm(a, b, loc=mu, scale=sigma)
-                    _, _, mu, sigma = bounds
+                    a, b, mu, sigma = bounds
                     prior = sps.norm(loc=mu, scale=sigma)
-                    logging.info("Prior truncated norm, a=%s, b=%s, mean=%s, std=%s", prior.a, prior.b, prior.mean(), prior.std())
+                    logging.info("Prior truncated norm, a=%s, b=%s, mean=%s, std=%s", a, b, prior.mean(), prior.std())
             priors.append({
                 "name": prior_name,
                 "type": prior_type,
