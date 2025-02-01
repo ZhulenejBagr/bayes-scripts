@@ -332,11 +332,12 @@ class TinyDAFlowWrapper():
         self.config["observed"] = self.observed
         self.cov = noise_cov
         self.measured_len = len(values)
+        self.loglike_object = tda.GaussianLogLike(np.array(self.observed), self.cov)
 
         # combine into posterior
         # if using mlda, use one mesh per model
         if not self.mlda:
-            posteriors = tda.Posterior(self.prior, self, self.forward_model)
+            posteriors = tda.Posterior(self.prior, self.loglike_object, self.forward_model)
         else:
             self.flow_wrapper.set_mlda_level(0)
             posteriors = []
@@ -345,6 +346,7 @@ class TinyDAFlowWrapper():
                 forward_model = partial(self.forward_model_mlda, level=level)
                 posterior_level = tda.Posterior(self.prior, self, forward_model)
                 posteriors.append(posterior_level)
+
         # setup proposal covariance matrix (for random gaussian walk & adaptive metropolis)
         proposal_cov = self.create_proposal_matrix()
         # setup proposal
@@ -431,25 +433,6 @@ class TinyDAFlowWrapper():
 
         self.priors = priors
         self.prior = tda.distributions.JointPrior([prior["dist"] for prior in priors])
-
-    def loglike(self, data):
-        """Model loglike to cover for empty model output caes.
-
-        Args:
-            data (_type_): Model output, None assumes empty model output.
-
-        Returns:
-            _type_: Log-likelihood of model value existing.
-        """
-        regular_loglike = tda.GaussianLogLike(np.array(self.observed), self.cov)
-
-        return regular_loglike.loglike(data)
-        #if data is not None:
-        #    return regular_loglike.loglike(data)
-        #return np.log(0)
-
-
-
 
     def forward_model(self, params):
         # transform parameters via info from priors
