@@ -303,7 +303,8 @@ class TinyDAFlowWrapper():
         # setup logging
         logging_files = {
             "observe_times": os.path.join(self.flow_wrapper.sim._config["work_dir"], "observe_times.txt"),
-            "chain_delay": os.path.join(self.flow_wrapper.sim._config["work_dir"], "chain_delay.txt")
+            "chain_delay": os.path.join(self.flow_wrapper.sim._config["work_dir"], "chain_delay.txt"),
+            "observe_fails": os.path.join(self.flow_wrapper.sim._config["work_dir"], "observe_fails.txt")
         }
         self.logger_ref = DataLogger.remote(logging_files)
         logging.info("Using following logger files:")
