@@ -50,7 +50,7 @@ def test_simulation11():
     save_idata_to_file(idata, folder_path=work_dir, filename="flow.sim11.idata")
 
     # generate plots
-    generate_all_flow_plots(idata, config=tinyda_wrapper.config, folder=work_dir)
+    generate_all_flow_plots(idata, folder=work_dir)
 
 @pytest.mark.skip
 def test_simulation11_fail():
@@ -87,7 +87,7 @@ def test_simulation11_fail():
     save_idata_to_file(idata, folder_path=work_dir, filename="flow.sim11.idata")
 
     # generate plots
-    generate_all_flow_plots(idata, config=tinyda_wrapper.config, folder=work_dir)
+    generate_all_flow_plots(idata, folder=work_dir)
 
 @pytest.mark.skip
 def test_simulation12_mlda():
