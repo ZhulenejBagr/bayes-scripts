@@ -496,7 +496,8 @@ class TinyDAFlowWrapper():
             logging.error("Failed to log additional data from flow's output")
             logging.error(traceback.format_exc())
             param_string = ",".join([str(-1), str(-1)])
-
+            self.flow_wrapper.sim.copy_sample_dir()
+            self.logger_ref.write_to_file.remote(params_formatted + "\n", "observe_fails")
 
         # Clean flow output dir
         self.flow_wrapper.sim.clean_sample_dir(self.config)
