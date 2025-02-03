@@ -409,18 +409,10 @@ class TinyDAFlowWrapper():
             prior_type = param["type"]
             match prior_type:
                 case "lognorm":
-                    #prior = sps.lognorm(s = bounds[1], scale = np.exp(bounds[0]))
                     mu, sigma = bounds
                     prior = sps.norm(loc=mu, scale=sigma)
                     logging.info("Prior lognorm, mu=%s, std=%s", prior.mean(), prior.std())
-                # unused as of now
-                #case "unif":
-                #    prior = sps.uniform(loc = bounds[0], scale = bounds[1] - bounds[0])
-                #    logging.info("Prior uniform, a=%s, b=%s", prior.a, prior.b)
                 case "truncnorm":
-                    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.truncnorm.html
-                    #a, b = (a_trunc - mu) / sigma, (b_trunc - mu) / sigma
-                    #prior = sps.truncnorm(a, b, loc=mu, scale=sigma)
                     a, b, mu, sigma = bounds
                     prior = sps.norm(loc=mu, scale=sigma)
                     logging.info("Prior truncated norm, a=%s, b=%s, mean=%s, std=%s", a, b, prior.mean(), prior.std())
