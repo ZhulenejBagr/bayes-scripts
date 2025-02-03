@@ -469,6 +469,8 @@ class TinyDAFlowWrapper():
         if data is None:
             data = np.multiply(1e8, np.ones(self.measured_len))
 
+        # Format params for logging purposes
+        params_formatted = ",".join([str(param) for param in params.tolist()])
 
         # Get additional data from stdout and stderr of flow
         pattern = r"HM Iteration.*\n"
@@ -505,7 +507,6 @@ class TinyDAFlowWrapper():
         # Write time measurement
         # Await confirmation of logging
         elapsed_formatted = f"{elapsed:.2f}"
-        params_formatted = ",".join([str(param) for param in params.tolist()])
         logstring = ",".join([elapsed_formatted, param_string, params_formatted]) + "\n"
         #logging.info(logstring)
         self.logger_ref.write_to_file.remote(logstring, "observe_times")
