@@ -204,6 +204,9 @@ class Flow123dSimulation:
         if config_dict["clean_sample_dir"]:
             shutil.rmtree(self.sample_dir)
 
+    def copy_sample_dir(self):
+        shutil.copytree(self.sample_dir, os.path.join(self.work_dir, "error_samples", self.param_hash))
+
     def collect_results_vtk(self, config_dict, fo: common.FlowOutput):
         # Load the PVD file
         # pvd_file_path = os.path.join(self.sample_output_dir, "flow.pvd")
