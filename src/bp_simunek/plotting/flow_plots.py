@@ -267,7 +267,7 @@ def generate_all_flow_plots(idata: az.InferenceData, folder):
     az.plot_trace(idata)
     plt.tight_layout()
     save_plot("trace_plot.pdf", folder_path=folder)
-    likelihood_plots = plot_likelihood(idata)
+    likelihood_plots = plot_likelihood(idata, cutoff=-1000)
     save_plots_pdf_pages("likelihood_plot.pdf", folder_path=folder, figs=likelihood_plots)
 
     corr_plot, stats_plots = data_window_plots(idata, 100)
