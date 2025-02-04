@@ -217,42 +217,46 @@ def chain_delay_plot(data):
 def plot_likelihood(idata: az.InferenceData, cutoff=-100):
     draws = idata.posterior.sizes["draw"]
     chains = idata.posterior.sizes["chain"]
-    likelihoods = idata["sample_stats"]["likelihood"]
-    likelihoods = np.clip(likelihoods, cutoff, None)
+    likelihoods = np.clip(idata["sample_stats"]["likelihood"], cutoff, None)
+    prior = np.clip(idata["sample_stats"]["prior"], cutoff, None)
+    posterior = np.clip(idata["sample_stats"]["posterior"], cutoff, None)
+    datasets = [likelihoods, prior, posterior]
+    labels = ["log-likelihood", "log-prior", "log-posterior"]
     x_axis = np.arange(0, draws)
 
     figs = []
 
-    fig_progression, axes_progression = plt.subplots(2, 1, figsize=(16, 9))
-    fig_progression.suptitle(f"Vývoj log-likelihood v čase (hodnoty pod {cutoff} oříznuty)")
-    axes_progression[0].set_xlabel("Iterace v chainu")
-    axes_progression[0].set_ylabel("Log-likelihood")
-    for chain in np.arange(0, chains):
-        axes_progression[0].plot(x_axis, likelihoods[chain, :], label=f"Chain {chain}")
+    for dataset, label in zip(datasets, labels):
+        fig_progression, axes_progression = plt.subplots(2, 1, figsize=(16, 9))
+        fig_progression.suptitle(f"Vývoj {label} v čase (hodnoty pod {cutoff} oříznuty)")
+        axes_progression[0].set_xlabel("Iterace v chainu")
+        axes_progression[0].set_ylabel(f"{label}")
+        for chain in np.arange(0, chains):
+            axes_progression[0].plot(x_axis, dataset[chain, :], label=f"Chain {chain}")
 
-    likelihood_mean = np.mean(likelihoods, axis=0)
-    likelihood_median = np.median(likelihoods, axis=0)
-    likelihood_min = np.min(likelihoods, axis=0)
-    axes_progression[0].legend(ncol=2, loc="lower right")
-    axes_progression[0].grid(True)
+        mean = np.mean(dataset, axis=0)
+        median = np.median(dataset, axis=0)
+        min = np.min(dataset, axis=0)
+        axes_progression[0].legend(ncol=2, loc="lower right")
+        axes_progression[0].grid(True)
 
-    axes_progression[1].set_xlabel("Iterace v chainu")
-    axes_progression[1].set_ylabel("Log-likelihood")
-    axes_progression[1].plot(x_axis, likelihood_mean, label="Průměrná log-likelihood")
-    axes_progression[1].plot(x_axis, likelihood_median, label="Medián log-likelihood")
-    axes_progression[1].plot(x_axis, likelihood_min, label="Minimum log-likelihood")
-    axes_progression[1].legend(ncol=2, loc="lower right")
-    axes_progression[1].grid(True)
+        axes_progression[1].set_xlabel("Iterace v chainu")
+        axes_progression[1].set_ylabel(f"")
+        axes_progression[1].plot(x_axis, mean, label=f"Průměrná {label}")
+        axes_progression[1].plot(x_axis, median, label=f"Medián {label}")
+        axes_progression[1].plot(x_axis, min, label=f"Minimum {label}")
+        axes_progression[1].legend(ncol=2, loc="lower right")
+        axes_progression[1].grid(True)
 
-    figs += [fig_progression]
+        figs += [fig_progression]
 
-    fig_hist, axes_hist = plt.subplots(figsize=(16, 9))
-    fig_hist.suptitle(f"Histogram log-likelihood (hodnoty pod {cutoff} oříznuty)")
-    axes_hist.set_xlabel("Log-likelihood")
-    axes_hist.set_ylabel("Počet")
-    axes_hist.hist(likelihoods.values.flatten(), bins=100)
+        fig_hist, axes_hist = plt.subplots(figsize=(16, 9))
+        fig_hist.suptitle(f"Histogram {label} (hodnoty pod {cutoff} oříznuty)")
+        axes_hist.set_xlabel(f"{label}")
+        axes_hist.set_ylabel("Počet")
+        axes_hist.hist(dataset.values.flatten(), bins=100)
 
-    figs += [fig_hist]
+        figs += [fig_hist]
 
     return figs
 
