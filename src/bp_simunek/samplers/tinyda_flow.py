@@ -320,8 +320,11 @@ class TinyDAFlowWrapper():
         boreholes = ["H1"]
         # choose which borehole conductivities to use, empty list means none
         cond_boreholes = []
-        # get actual values
-        _, values = md.generate_measured_samples(boreholes, cond_boreholes)
+        # get actual values and choose synthetic/real data
+        if "synthetic_data" in self.config:
+            times, values = md.generate_synthetic_samples(boreholes, cond_boreholes)
+        else:
+            times, values = md.generate_measured_samples(boreholes, cond_boreholes)
         logging.info("Loading observed values:")
         logging.info(values)
 
