@@ -52,7 +52,44 @@ def test_simulation11():
     # generate plots
     generate_all_flow_plots(idata, folder=work_dir)
 
-#@pytest.mark.skip
+@pytest.mark.skip
+def test_simulation11_fail():
+    #ray.init(runtime_env={"working_dir": ROOT_DIR})
+    os.chdir(script_dir)
+    observe_path = Path(script_dir, "../measured_data").absolute()
+    template_dir = Path("templates", "test_workdir11_fail").absolute()
+    work_dir = Path(ROOT_DIR, "output", "test11_fail").absolute()
+
+    # clean workdir
+    if os.path.isdir(work_dir):
+        shutil.rmtree(work_dir)
+
+    # copy template to workdir
+    shutil.copytree(template_dir, work_dir)
+
+    # init wrapper - load config
+    wrap = Wrapper(work_dir)
+
+    # add observe path to config
+    wrap.set_observe_path(observe_path)
+
+    # tinyda + flow123 wrapper
+    tinyda_wrapper = TinyDAFlowWrapper(wrap)
+
+    # run sampling process
+    idata = tinyda_wrapper.sample()
+
+    # check if sampling was successful
+    assert idata
+    assert idata["posterior"].sizes["draw"] == tinyda_wrapper.sample_count
+
+    # save results
+    save_idata_to_file(idata, folder_path=work_dir, filename="flow.sim11.idata")
+
+    # generate plots
+    generate_all_flow_plots(idata, folder=work_dir)
+
+@pytest.mark.skip
 def test_simulation12_mlda():
     os.chdir(script_dir)
     observe_path = Path(script_dir, "../measured_data").absolute()

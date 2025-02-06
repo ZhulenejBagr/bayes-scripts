@@ -1,4 +1,4 @@
-  mesh_only: False
+mesh_only: False
 make_plots: False
 # if True, it removes sample dir right after the sample is collected
 clean_sample_dir: True
@@ -34,9 +34,9 @@ parameters:
 
 sampler_parameters:
   # how many samples to collect
-  sample_count: 1000
+  sample_count: 300
   # how many samples to scrap
-  tune_count: 200
+  tune_count: 100
   # how many chains to run
   chain_count: 20
   # whether to force sequential sampling, even with chains > 1 and ray present

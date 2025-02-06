@@ -370,10 +370,7 @@ class MeasuredData:
 
 if __name__ == "__main__":
 
-    import flow_wrapper
-
-    config_dict = flow_wrapper.setup_config("measured_data")
-    # config_dict = flow_wrapper.setup_config("/home/paulie/Workspace/endorse/src/endorse/bayes_orig/measured_data/")
+    from ..simulation.flow_wrapper import Wrapper
 
 
     os.makedirs(config_dict["work_dir"], mode=0o775, exist_ok=True)
