@@ -161,3 +161,9 @@ cython_debug/
 #.idea/
 
 RESULTS
+
+# Included repo with custom fork of tinyDA
+tinyDA/
+
+# Saved data and test output
+output/

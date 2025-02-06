@@ -6,8 +6,25 @@ COPY requirements.txt /tmp/requirements.txt
 # https://docs.docker.com/build/buildkit/
 # RUN --mount=type=bind,source=requirements.txt,target=/tmp/requirements.txt \
 
-RUN python3 -m pip install -U pip && \
-    pip3 install -r /tmp/requirements.txt  && \
-    rm /tmp/requirements.txt
+#ARG MNT_POINT
 
-RUN apt-get install sshpass
+# Setup venv and install wheel
+#RUN python3 -m pip install -U pip && \
+#    pip3 install -r /tmp/requirements.txt  && \
+#    rm /tmp/requirements.txt 
+
+#COPY setup_venv /tmp/setup_venv
+
+# Setup venv
+#RUN bash /tmp/setup_venv
+
+# Install custom tinyDA
+#RUN cd ${MNT_POINT} && \
+#    git clone https://github.com/bagr-sus/tinyDA && \
+#    cd tinyDA && \
+#    git checkout shared-archive-proposals && \
+#    source mnt/wd/venv/bin/activate && \
+#    python -m pip install -e 
+
+RUN apt-get update && \
+    apt-get install -y sshpass git

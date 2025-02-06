@@ -213,7 +213,7 @@ class MeasuredData:
 
 if __name__ == "__main__":
 
-    from bp_simunek.simulation.flow_wrapper import Wrapper
+    from ..simulation.flow_wrapper import Wrapper
 
     config_dict = Wrapper.setup_config()
 

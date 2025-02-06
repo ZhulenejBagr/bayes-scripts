@@ -4,7 +4,6 @@ import os
 import sys
 import yaml
 from pathlib import Path
-import logging
 
 rep_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(rep_dir)
