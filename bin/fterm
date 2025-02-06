@@ -321,7 +321,7 @@ case $action in
       update_images
     fi
     dbg2 "Entering shell"
-    dbgc docker run --rm -it $envarg $mountargs $priv_true $base_image
+    dbgc docker run -m 2g --rm -it $envarg $mountargs $priv_true $base_image
   ;;
   update)
     update_images
