@@ -3,7 +3,7 @@ import csv
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import interpolate
-from flow123d_simulation import generate_time_axis
+from .flow123d_simulation import generate_time_axis
 
 
 class MeasuredData:
