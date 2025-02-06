@@ -334,11 +334,12 @@ def compute_accepted(idata):
         
     return accepted, rejected
 
-
-
 if __name__ == "__main__":
-    idata_name = "2x2000.idata"
-    folder_path = os.path.join(ROOT_DIR, "data", "dataset3", "2x2000_DREAMZ")
+    #idata_name = "20x300.idata"
+    folder_path = os.path.join(ROOT_DIR, "data", "dataset9", "20x1000_DREAM")
+    #folder_path = os.path.join(ROOT_DIR, "output", "test11")
+    idata_name = "20x1000.idata"
     idata = read_idata_from_file(idata_name, folder_path)
-    idata = idata.sel(draw=slice(100, None))
-    generate_all_flow_plots(idata,folder_path)
+    #generate_all_flow_plots(idata, folder_path)
+    likelihood_plots = plot_likelihood(idata, -4000)
+    save_plots_pdf_pages("likelihood_plot.pdf", folder_path=folder_path, figs=likelihood_plots)
