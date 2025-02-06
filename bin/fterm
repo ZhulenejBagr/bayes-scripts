@@ -26,11 +26,15 @@ OLD_PWD="$(pwd)"
 ABS_FLOW_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/.. && pwd )"
 REL_FLOW_DIR=$(realpath --relative-to=$(pwd) $ABS_FLOW_DIR)
 
-image_name=bp_simunek
-image_tag=09da55
+#image_name=bp_simunek
+#image_tag=09da55
+
+#image_name=endorse_ci
+#image_tag=e67f54
 
 function get_base_image() {
-    local image=flow123d/$image_name:$image_tag
+    #local image=flow123d/$image_name:$image_tag
+    local image="ondrejsimunek/bpr:09da55"
     echo $image
 }
 
@@ -275,7 +279,7 @@ fi
 # determine image names
 # base_image=flow123d/flow-dev-$image_env-$image_kind:$image_tag
 base_image=flow123d/$image_name:$image_tag
-
+base_image="ondrejsimunek/bpr:09da55"
 
 dbg "base_image     = $base_image"
 dbg "image_tag      = $image_tag"
@@ -289,7 +293,8 @@ dbg "privileged     = $privileged"
 
 # env variables which will be passed as well
 envarg="-euid=$uid -egid=$gid -etheme=$theme -ewho=$uname -ehome=/mnt/$HOME -v /$HOME:/mnt/$HOME"
-mountargs="-w /${OLD_PWD} -v /${OLD_PWD}:/${OLD_PWD} -v /${work}:/${work}"
+#mountargs="-w /${OLD_PWD} -v /${OLD_PWD}:/${OLD_PWD} -v /${work}:/${work}"
+mountargs="-w //home/flow -v /${OLD_PWD}://home/flow"
 if [[ $privileged == "1" ]]; then
   priv_true="--privileged=true"
 fi

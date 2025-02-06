@@ -26,6 +26,10 @@ def generate_time_axis(config_dict):
     end_time = float(config_dict["end_time"])
     output_times = config_dict["output_times"]
 
+    print("end time %d", end_time)
+    print("output times")
+    print(output_times)
+
     # create time axis
     times = []
     for dt in output_times:
@@ -52,6 +56,8 @@ class Flow123dSimulation:
         self.sample_dir = Path(".")
         self.sample_output_dir = "output"
         self.param_hash = ""
+        self.stdout_path = ""
+        self.stderr_path = ""
 
     def set_parameters(self, data_par):
         param_list = self._config["parameters"]
@@ -77,7 +83,7 @@ class Flow123dSimulation:
             return res
         except ValueError:
             print("flow_wrapper failed for unknown reason.")
-            return -1000, []
+            return -1000, np.empty(0)
 
     def calculate(self, config_dict):
         """
@@ -189,10 +195,17 @@ class Flow123dSimulation:
         if config_dict["collect_results"]["collect_observe"]:
             data = self.collect_results_observe(config_dict, fo)
 
+        #if config_dict["clean_sample_dir"]:
+        #    shutil.rmtree(self.sample_dir)
+
+        return data
+
+    def clean_sample_dir(self, config_dict):
         if config_dict["clean_sample_dir"]:
             shutil.rmtree(self.sample_dir)
 
-        return data
+    def copy_sample_dir(self):
+        shutil.copytree(self.sample_dir, os.path.join(self.work_dir, "error_samples", self.param_hash))
 
     def collect_results_vtk(self, config_dict, fo: common.FlowOutput):
         # Load the PVD file
@@ -254,10 +267,11 @@ class Flow123dSimulation:
         data_values = np.array([d[field_name] for d in data])
         values = data_values[:, points2collect_indices]
         obs_times = np.array([d["time"] for d in data]).transpose()
-
         if select_times is not None:
             # check that observe data are computed at all times of defined time axis
             all_times_computed = np.all(np.isin(select_times, obs_times))
+            #logging.warning(select_times)
+            #logging.warning(obs_times)
             if not all_times_computed:
                 raise Exception("Observe data not computed at all times as defined by input!")
             # skip the times not specified in input
@@ -291,21 +305,22 @@ class Flow123dSimulation:
             fname = params["in_file"]
             input_template = common.File(Path(config_dict["common_files_dir"])/(fname + '_tmpl.yaml'))
             completed_process, stdout, stderr = common.flow_call(self.sample_dir, arguments, input_template, params)
+            self.stdout_path = stdout.path
+            self.stderr_path = stderr.path
         status, fo = common.flow_check(self.sample_dir, completed_process, result_files)
 
         return status, fo
 
 
     def prepare_mesh(self, config_dict, cut_tunnel):
-        if config_dict["sampler_parameters"]["mlda"]:
+        if "mlda" in config_dict["sampler_parameters"] and config_dict["sampler_parameters"]["mlda"] is True:
             level = config_dict["sampler_parameters"]["level"]
             mesh_name = config_dict["geometry"]["mesh_name"][level]
         else:
-            try:
-                mesh_name = config_dict["geometry"]["mesh_name"][-1]
-            except:
-                mesh_name = config_dict["geometry"]["mesh_name"]
-    
+            mesh_name = config_dict["geometry"]["mesh_name"]
+
+        logging.info(mesh_name)
+
         if cut_tunnel:
             mesh_name = mesh_name + "_cut"
         # mesh_file = mesh_name + ".msh"
