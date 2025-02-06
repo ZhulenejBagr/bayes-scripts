@@ -327,6 +327,10 @@ class TinyDAFlowWrapper():
             times, values = md.generate_measured_samples(boreholes, cond_boreholes)
         logging.info("Loading observed values:")
         logging.info(values)
+        logging.info("At times:")
+        logging.info(times)
+        self.observed = values
+        self.times = times
 
         # setup loglike
         noise_cov = np.multiply(self.noise_std, np.eye(len(values)))
