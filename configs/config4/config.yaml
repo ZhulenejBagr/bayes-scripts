@@ -60,7 +60,7 @@ parameters:
 
 sampler_parameters:
   # how many samples to collect
-  sample_count: 100
+  sample_count: 1000
   # how many samples to scrap
   tune_count: 0
   # how many chains to run
@@ -68,7 +68,7 @@ sampler_parameters:
   # whether to force sequential sampling, even with chains > 1 and ray present
   force_sequential: False
   # standard deviation of noise function
-  noise_std: 200
+  noise_std: 5
   # proposal to use
   proposal: "DREAM"
   # whether to adapt scaling
@@ -83,9 +83,9 @@ sampler_parameters:
   archive_limit: 0
 
 # synthetic observe params
-#synthetic_data:
-#  corr_length: 20
-#  noise_std: 5
+synthetic_data:
+  corr_length: 20
+  noise_std: 5
 
 # types of collected data
 collect_results:
